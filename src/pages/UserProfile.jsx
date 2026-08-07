@@ -61,7 +61,7 @@ export default function UserProfile() {
     );
   }
 
-  const isPeer = user.role === "peer_counsellor";
+  const isPeer = user.role === "peer_listener";
   const stats = user.stats || {};
 
   return (

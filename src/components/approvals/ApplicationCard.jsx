@@ -4,7 +4,7 @@ import { timeAgo } from "../../utils/formatters";
 
 export default function ApplicationCard({ application, onView, onApprove, onReject }) {
   const subtitle =
-    application.role === "peer_counsellor"
+    application.role === "peer_listener"
       ? `${application.program} · Year ${application.yearOfStudy}`
       : application.title;
 

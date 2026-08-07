@@ -74,7 +74,7 @@ export default function Topbar({ onMenuClick, pageTitle }) {
                     {initials(u.name)}
                   </span>
                   <span className="flex-1 truncate">{u.name}</span>
-                  <span className="text-xs text-slate-400">{u.role === "peer_counsellor" ? "Peer" : "Counsellor"}</span>
+                  <span className="text-xs text-slate-400">{u.role === "peer_listener" ? "Peer" : "Counsellor"}</span>
                 </button>
               ))}
             </div>

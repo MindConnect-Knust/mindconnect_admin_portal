@@ -125,7 +125,7 @@ export default function Activity() {
       <Tabs
         tabs={[
           { value: "counsellor", label: "Counsellor Activity", count: counsellors.length },
-          { value: "peer_counsellor", label: "Peer Counsellor Activity", count: peerCounsellors.length },
+          { value: "peer_listener", label: "Peer Counsellor Activity", count: peerCounsellors.length },
         ]}
         active={tab}
         onChange={setTab}

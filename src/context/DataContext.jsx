@@ -48,14 +48,14 @@ export function DataProvider({ children }) {
     const app = applications.find((a) => a.id === applicationId);
     const newUser = await api.approveApplication(applicationId, adminName);
     setApplications((prev) => prev.filter((a) => a.id !== applicationId));
-    if (newUser.role === "peer_counsellor") {
+    if (newUser.role === "peer_listener") {
       setPeerCounsellors((prev) => [newUser, ...prev]);
     } else {
       setCounsellors((prev) => [newUser, ...prev]);
     }
     const auditRow = await api.getAuditLog();
     setAuditLog(auditRow);
-    notify(`${app?.name || "Applicant"} approved and added to active ${newUser.role === "peer_counsellor" ? "peer counsellors" : "counsellors"}.`, "success");
+    notify(`${app?.name || "Applicant"} approved and added to active ${newUser.role === "peer_listener" ? "peer counsellors" : "counsellors"}.`, "success");
     return newUser;
   }, [applications, adminName, notify]);
 

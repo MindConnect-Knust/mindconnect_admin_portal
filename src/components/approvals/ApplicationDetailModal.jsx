@@ -15,7 +15,7 @@ function Field({ label, value }) {
 
 export default function ApplicationDetailModal({ application, onClose, onApprove, onReject }) {
   if (!application) return null;
-  const isPeer = application.role === "peer_counsellor";
+  const isPeer = application.role === "peer_listener";
 
   return (
     <Modal

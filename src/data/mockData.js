@@ -64,7 +64,7 @@ export const seedApplications = [
   },
   {
     id: "app-3",
-    role: "peer_counsellor",
+    role: "peer_listener",
     name: "Efua Boateng",
     email: "efua.boateng@st.university.edu",
     phone: "+233 55 213 9048",
@@ -82,7 +82,7 @@ export const seedApplications = [
   },
   {
     id: "app-4",
-    role: "peer_counsellor",
+    role: "peer_listener",
     name: "Yaw Darko",
     email: "yaw.darko@st.university.edu",
     phone: "+233 27 890 1123",
@@ -293,7 +293,7 @@ export const seedCounsellors = [
 export const seedPeerCounsellors = [
   {
     id: "p-1",
-    role: "peer_counsellor",
+    role: "peer_listener",
     name: "Kojo Mensah",
     email: "kojo.mensah@st.university.edu",
     phone: "+233 55 771 2290",
@@ -314,7 +314,7 @@ export const seedPeerCounsellors = [
   },
   {
     id: "p-2",
-    role: "peer_counsellor",
+    role: "peer_listener",
     name: "Ama Serwaa",
     email: "ama.serwaa@st.university.edu",
     phone: "+233 24 456 8871",
@@ -335,7 +335,7 @@ export const seedPeerCounsellors = [
   },
   {
     id: "p-3",
-    role: "peer_counsellor",
+    role: "peer_listener",
     name: "Kwesi Appiah",
     email: "kwesi.appiah@st.university.edu",
     phone: "+233 27 662 3341",
@@ -357,7 +357,7 @@ export const seedPeerCounsellors = [
   },
   {
     id: "p-4",
-    role: "peer_counsellor",
+    role: "peer_listener",
     name: "Abigail Nkrumah",
     email: "abigail.nkrumah@st.university.edu",
     phone: "+233 20 887 4432",
@@ -384,7 +384,7 @@ export const seedPeerCounsellors = [
 export const seedAuditLog = [
   { id: nextId("audit"), timestamp: "2026-06-25T00:00:00Z", admin: "Admin", action: "Deactivated", targetName: "Dr. Comfort Adjei", targetRole: "counsellor", reason: "No improvement after review period; deactivated at department's request." },
   { id: nextId("audit"), timestamp: "2026-07-22T10:00:00Z", admin: "Admin", action: "Put on hold", targetName: "Dr. Gifty Asante", targetRole: "counsellor", reason: "Response times have slipped significantly and two students flagged missed sessions." },
-  { id: nextId("audit"), timestamp: "2026-07-18T00:00:00Z", admin: "Admin", action: "Put on hold", targetName: "Kwesi Appiah", targetRole: "peer_counsellor", reason: "Exam period conflict raised by student; paused caseload temporarily at their request." },
+  { id: nextId("audit"), timestamp: "2026-07-18T00:00:00Z", admin: "Admin", action: "Put on hold", targetName: "Kwesi Appiah", targetRole: "peer_listener", reason: "Exam period conflict raised by student; paused caseload temporarily at their request." },
 ];
 
 export const seedNotifications = [

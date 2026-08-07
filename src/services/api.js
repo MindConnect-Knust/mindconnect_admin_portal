@@ -1,12 +1,14 @@
-// Mock "backend" for the admin portal.
+// Backend for the admin portal.
 //
-// Every export here is an async function shaped like a real API call
-// (returns a Promise, takes plain arguments, throws on failure). When a real
-// backend is ready, this file is the only place that needs to change —
-// replace the bodies with `fetch`/axios calls and keep the same signatures.
+// Auth and the Approvals workflow (getApplications/approveApplication/
+// rejectApplication) talk to the real MindConnect backend via `http.js`.
+// Everything else (Counsellors, PeerCounsellors, Activity, UserProfile,
+// notifications) is still backed by the in-memory mock store seeded from
+// mockData.js — those pages have no real backend support yet (session
+// stats, ratings, evaluations, activity logs, document uploads).
 
+import { http } from "./http";
 import {
-  seedApplications,
   seedCounsellors,
   seedPeerCounsellors,
   seedAuditLog,
@@ -18,9 +20,8 @@ const LATENCY = 350;
 const delay = (ms = LATENCY) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // In-memory store, mutated in place to simulate a persistent backend across
-// the session.
+// the session — used only by the still-mocked reads/actions below.
 const store = {
-  applications: [...seedApplications],
   counsellors: [...seedCounsellors],
   peerCounsellors: [...seedPeerCounsellors],
   auditLog: [...seedAuditLog],
@@ -43,31 +44,130 @@ function addAuditEntry({ admin, action, targetName, targetRole, reason }) {
 }
 
 function findUserCollection(role) {
-  return role === "peer_counsellor" ? "peerCounsellors" : "counsellors";
+  return role === "peer_listener" ? "peerCounsellors" : "counsellors";
 }
 
 // ---------------------------------------------------------------------------
-// Auth
+// Auth — real backend
 // ---------------------------------------------------------------------------
 export async function login(email, password) {
-  await delay(500);
-  if (!email || !password) {
-    throw new Error("Email and password are required.");
-  }
-  if (password.length < 4) {
-    throw new Error("Incorrect email or password.");
-  }
-  return { name: email.split("@")[0], email, role: "Program Administrator" };
+  const data = await http.post("/auth/login", { email, password, role: "admin" });
+  return {
+    name: data.user?.name || email.split("@")[0],
+    email: data.user?.email || email,
+    role: "Program Administrator",
+    token: data.token,
+  };
 }
 
 // ---------------------------------------------------------------------------
-// Reads
+// Applications — real backend (users with approvalStatus: "pending")
 // ---------------------------------------------------------------------------
+function mapPendingUserToApplication(user) {
+  return {
+    id: user.id || user._id,
+    role: user.role,
+    name: user.name,
+    email: user.email,
+    phone: user.phone || "",
+    submittedAt: user.createdAt,
+    status: "pending",
+    // Lecturer/counsellor fields
+    title: user.title || "",
+    department: user.department || "",
+    yearsExperience: user.yearsExperience,
+    licenseNumber: user.licenseNumber || "",
+    qualifications: [],
+    // Peer counsellor fields
+    studentId: user.studentId || "",
+    program: user.program || "",
+    yearOfStudy: user.yearOfStudy,
+    trainingProgram: "",
+    referees: [],
+    // Shared
+    motivation: user.motivation || "",
+    documents: [],
+  };
+}
+
 export async function getApplications() {
-  await delay();
-  return [...store.applications];
+  const data = await http.get("/auth/users/pending");
+  return (data.data || []).map(mapPendingUserToApplication);
 }
 
+export async function approveApplication(applicationId, adminName = "Admin") {
+  const data = await http.put(`/auth/users/${applicationId}/approve`, {});
+  const approvedUser = data.user;
+
+  // Reflect the approval in the still-mocked active-user lists so the
+  // Counsellors/PeerCounsellors pages have something to show — those pages
+  // don't read from the real backend yet.
+  const newUser = {
+    id: approvedUser.id,
+    role: approvedUser.role,
+    name: approvedUser.name,
+    email: approvedUser.email,
+    phone: "",
+    joinedAt: new Date().toISOString(),
+    status: "active",
+    stats: {
+      sessionsThisMonth: 0,
+      totalSessions: 0,
+      studentsSeen: 0,
+      avgRating: 0,
+      avgResponseTimeHrs: 0,
+      lastActiveAt: null,
+    },
+    ratingTrend: [],
+    evaluations: [],
+    activityLog: [],
+    adminNotes: [
+      {
+        id: nextId("note"),
+        date: new Date().toISOString(),
+        admin: adminName,
+        action: "approved",
+        note: "Application approved after review.",
+      },
+    ],
+  };
+
+  store[findUserCollection(approvedUser.role)] = [
+    newUser,
+    ...store[findUserCollection(approvedUser.role)],
+  ];
+
+  addAuditEntry({
+    admin: adminName,
+    action: "Approved application",
+    targetName: approvedUser.name,
+    targetRole: approvedUser.role,
+    reason: "",
+  });
+
+  return newUser;
+}
+
+export async function rejectApplication(applicationId, reason, adminName = "Admin") {
+  if (!reason || !reason.trim()) throw new Error("A reason is required to reject an application.");
+
+  const data = await http.put(`/auth/users/${applicationId}/reject`, { reason });
+  const rejectedUser = data.user;
+
+  addAuditEntry({
+    admin: adminName,
+    action: "Rejected application",
+    targetName: rejectedUser?.name,
+    targetRole: rejectedUser?.role,
+    reason,
+  });
+
+  return { id: applicationId };
+}
+
+// ---------------------------------------------------------------------------
+// Reads — still mocked
+// ---------------------------------------------------------------------------
 export async function getCounsellors() {
   await delay();
   return [...store.counsellors];
@@ -98,100 +198,7 @@ export async function getUserById(id) {
 }
 
 // ---------------------------------------------------------------------------
-// Application decisions
-// ---------------------------------------------------------------------------
-export async function approveApplication(applicationId, adminName = "Admin") {
-  await delay(500);
-  const app = store.applications.find((a) => a.id === applicationId);
-  if (!app) throw new Error("Application not found.");
-
-  const base = {
-    id: nextId(app.role === "peer_counsellor" ? "p" : "c"),
-    role: app.role,
-    name: app.name,
-    email: app.email,
-    phone: app.phone,
-    joinedAt: new Date().toISOString(),
-    status: "active",
-    stats: {
-      sessionsThisMonth: 0,
-      totalSessions: 0,
-      studentsSeen: 0,
-      avgRating: 0,
-      avgResponseTimeHrs: 0,
-      lastActiveAt: null,
-    },
-    ratingTrend: [],
-    evaluations: [],
-    activityLog: [],
-    adminNotes: [
-      {
-        id: nextId("note"),
-        date: new Date().toISOString(),
-        admin: adminName,
-        action: "approved",
-        note: "Application approved after review.",
-      },
-    ],
-  };
-
-  const newUser =
-    app.role === "peer_counsellor"
-      ? {
-          ...base,
-          studentId: app.studentId,
-          program: app.program,
-          yearOfStudy: app.yearOfStudy,
-          trainingCohort: app.trainingProgram,
-          supervisor: "Unassigned",
-        }
-      : {
-          ...base,
-          title: app.title,
-          department: app.department,
-          yearsExperience: app.yearsExperience,
-          licenseNumber: app.licenseNumber,
-          specialties: [],
-        };
-
-  store[findUserCollection(app.role)] = [
-    newUser,
-    ...store[findUserCollection(app.role)],
-  ];
-  store.applications = store.applications.filter((a) => a.id !== applicationId);
-
-  addAuditEntry({
-    admin: adminName,
-    action: "Approved application",
-    targetName: app.name,
-    targetRole: app.role,
-    reason: "",
-  });
-
-  return newUser;
-}
-
-export async function rejectApplication(applicationId, reason, adminName = "Admin") {
-  await delay(500);
-  const app = store.applications.find((a) => a.id === applicationId);
-  if (!app) throw new Error("Application not found.");
-  if (!reason || !reason.trim()) throw new Error("A reason is required to reject an application.");
-
-  store.applications = store.applications.filter((a) => a.id !== applicationId);
-
-  addAuditEntry({
-    admin: adminName,
-    action: "Rejected application",
-    targetName: app.name,
-    targetRole: app.role,
-    reason,
-  });
-
-  return { id: applicationId };
-}
-
-// ---------------------------------------------------------------------------
-// Lifecycle actions on approved users
+// Lifecycle actions on approved users — still mocked
 // ---------------------------------------------------------------------------
 export async function updateUserStatus(id, status, reason, adminName = "Admin") {
   await delay(450);

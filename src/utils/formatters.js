@@ -61,7 +61,7 @@ export function avatarColor(seed = "") {
 }
 
 export function roleLabel(role) {
-  return role === "peer_counsellor" ? "Peer Counsellor" : "Counsellor";
+  return role === "peer_listener" ? "Peer Counsellor" : "Counsellor";
 }
 
 export function statusLabel(status) {

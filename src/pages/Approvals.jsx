@@ -15,7 +15,7 @@ export default function Approvals() {
   const [rejectTarget, setRejectTarget] = useState(null);
 
   const counsellorApps = useMemo(() => applications.filter((a) => a.role === "counsellor"), [applications]);
-  const peerApps = useMemo(() => applications.filter((a) => a.role === "peer_counsellor"), [applications]);
+  const peerApps = useMemo(() => applications.filter((a) => a.role === "peer_listener"), [applications]);
   const list = tab === "counsellor" ? counsellorApps : peerApps;
 
   const handleApprove = async (reason) => {
@@ -40,7 +40,7 @@ export default function Approvals() {
       <Tabs
         tabs={[
           { value: "counsellor", label: "Counsellor Applications", count: counsellorApps.length },
-          { value: "peer_counsellor", label: "Peer Counsellor Applications", count: peerApps.length },
+          { value: "peer_listener", label: "Peer Counsellor Applications", count: peerApps.length },
         ]}
         active={tab}
         onChange={setTab}
@@ -78,7 +78,7 @@ export default function Approvals() {
         onClose={() => setApproveTarget(null)}
         onConfirm={handleApprove}
         title="Approve application"
-        description={`${approveTarget?.name} will be granted access as an active ${approveTarget?.role === "peer_counsellor" ? "peer counsellor" : "counsellor"} and can immediately begin taking student cases.`}
+        description={`${approveTarget?.name} will be granted access as an active ${approveTarget?.role === "peer_listener" ? "peer counsellor" : "counsellor"} and can immediately begin taking student cases.`}
         confirmLabel="Approve"
         tone="default"
       />

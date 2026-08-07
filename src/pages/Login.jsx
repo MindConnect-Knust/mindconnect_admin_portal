@@ -124,7 +124,7 @@ export default function Login() {
           </form>
 
           <p className="mt-6 text-center text-xs text-slate-400">
-            This is a demo environment — enter any email and a password of 4+ characters to continue.
+            Sign in with an approved admin account.
           </p>
         </div>
       </div>
