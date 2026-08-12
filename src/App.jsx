@@ -37,6 +37,7 @@ import ModerationQueue from "./pages/community/ModerationQueue";
 import UsersPage from "./pages/administration/Users";
 import AuditLog from "./pages/administration/AuditLog";
 import AppointmentsPage from "./pages/administration/Appointments";
+import PushNotifications from "./pages/communications/PushNotifications";
 
 function AppRoutes() {
   return (
@@ -81,6 +82,7 @@ function AppRoutes() {
         {/* Administration */}
         <Route path="/administration/users" element={<UsersPage />} />
         <Route path="/administration/audit-log" element={<AuditLog />} />
+        <Route path="/communications/push" element={<PushNotifications />} />
         <Route path="/activity" element={<Activity />} />
         <Route path="/settings" element={<Settings />} />
       </Route>

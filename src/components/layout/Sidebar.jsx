@@ -1,9 +1,9 @@
 import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard, ClipboardCheck, UserCog, GraduationCap, CalendarDays,
-  Film, Laugh, Tv2, ShieldCheck, Newspaper, BookOpen, CalendarCheck,
+  Film, Laugh, ShieldCheck, Newspaper, BookOpen, CalendarCheck,
   Users, FileText, ListChecks, History, Settings, X, Database, TriangleAlert,
-  MonitorPlay, Layers,
+  MonitorPlay, Layers, Bell,
 } from "lucide-react";
 import { useData } from "../../context/DataContext";
 
@@ -134,6 +134,10 @@ export default function Sidebar({ open, onClose }) {
           <NavItem to="/administration/audit-log" label="Audit Log" icon={History} onClick={onClose} />
           <NavItem to="/activity" label="Activity" icon={FileText} onClick={onClose} />
           <NavItem to="/settings" label="Settings &amp; Health" icon={Settings} onClick={onClose} />
+
+          {/* COMMUNICATIONS */}
+          <p className={SECTION}>Communications</p>
+          <NavItem to="/communications/push" label="Push Notifications" icon={Bell} onClick={onClose} />
         </div>
 
         {/* Footer */}
