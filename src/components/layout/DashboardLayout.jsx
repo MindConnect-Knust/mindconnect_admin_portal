@@ -6,6 +6,7 @@ import Topbar from "./Topbar";
 const TITLES = [
   { match: "/", title: "Dashboard", end: true },
   { match: "/approvals", title: "Approvals" },
+  { match: "/content-moderation", title: "Content Moderation" },
   { match: "/counsellors", title: "Counsellors" },
   { match: "/peer-counsellors", title: "Peer Counsellors" },
   { match: "/activity", title: "Activity & Evaluations" },

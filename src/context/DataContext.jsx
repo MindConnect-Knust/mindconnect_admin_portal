@@ -1,5 +1,6 @@
-import { createContext, useContext, useState, useCallback, useEffect } from "react";
+import { createContext, useContext, useState, useCallback, useEffect, useMemo } from "react";
 import * as api from "../services/api";
+import { getDashboardContentCounts } from "../services/contentApi";
 import { useAuth } from "./AuthContext";
 import { useToast } from "./ToastContext";
 
@@ -8,7 +9,6 @@ const DataContext = createContext(null);
 export function DataProvider({ children }) {
   const { admin, isAuthenticated } = useAuth();
   const { notify } = useToast();
-
   const [applications, setApplications] = useState([]);
   const [counsellors, setCounsellors] = useState([]);
   const [peerCounsellors, setPeerCounsellors] = useState([]);
@@ -16,105 +16,128 @@ export function DataProvider({ children }) {
   const [notifications, setNotifications] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Content counts for sidebar badges — fetched separately so provider data
+  // loads quickly and content counts arrive when ready.
+  const [contentCounts, setContentCounts] = useState({
+    videoPending: null,
+    joyPending: null,
+    published: null,
+    openReports: null,
+  });
+  const [contentCountsError, setContentCountsError] = useState(false);
+
   const loadAll = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [apps, cs, pcs, audit, notifs] = await Promise.all([
+      const [apps, cs, pcs, audit] = await Promise.all([
         api.getApplications(),
         api.getCounsellors(),
         api.getPeerCounsellors(),
         api.getAuditLog(),
-        api.getNotifications(),
       ]);
       setApplications(apps);
       setCounsellors(cs);
       setPeerCounsellors(pcs);
       setAuditLog(audit);
-      setNotifications(notifs);
-    } catch {
-      notify("Failed to load portal data.", "error");
+      setNotifications(apps.slice(0, 20).map((application) => ({
+        id: `application-${application.id}-${application.version}`,
+        type: "application",
+        message: `${application.name} has an application awaiting review.`,
+        timestamp: application.submittedAt,
+        read: false,
+      })));
+    } catch (error) {
+      notify(error.message || "Failed to load portal data.", "error");
     } finally {
       setIsLoading(false);
     }
   }, [notify]);
 
+  const loadContentCounts = useCallback(async () => {
+    try {
+      setContentCountsError(false);
+      const counts = await getDashboardContentCounts();
+      setContentCounts(counts);
+    } catch {
+      setContentCountsError(true);
+    }
+  }, []);
+
   useEffect(() => {
-    if (isAuthenticated) loadAll();
-  }, [isAuthenticated, loadAll]);
+    if (isAuthenticated) {
+      void loadAll();
+      void loadContentCounts();
+    }
+  }, [isAuthenticated, loadAll, loadContentCounts]);
 
   const adminName = admin?.name || "Admin";
 
   const approveApplication = useCallback(async (applicationId) => {
-    const app = applications.find((a) => a.id === applicationId);
-    const newUser = await api.approveApplication(applicationId, adminName);
-    setApplications((prev) => prev.filter((a) => a.id !== applicationId));
-    if (newUser.role === "peer_listener") {
-      setPeerCounsellors((prev) => [newUser, ...prev]);
-    } else {
-      setCounsellors((prev) => [newUser, ...prev]);
-    }
-    const auditRow = await api.getAuditLog();
-    setAuditLog(auditRow);
-    notify(`${app?.name || "Applicant"} approved and added to active ${newUser.role === "peer_listener" ? "peer counsellors" : "counsellors"}.`, "success");
-    return newUser;
-  }, [applications, adminName, notify]);
+    const application = applications.find((item) => item.id === applicationId);
+    const updated = await api.approveApplication(applicationId, adminName, application?.version);
+    await loadAll();
+    notify(`${updated.name} was approved.`, "success");
+    return updated;
+  }, [adminName, applications, loadAll, notify]);
 
   const rejectApplication = useCallback(async (applicationId, reason) => {
-    const app = applications.find((a) => a.id === applicationId);
-    await api.rejectApplication(applicationId, reason, adminName);
-    setApplications((prev) => prev.filter((a) => a.id !== applicationId));
-    setAuditLog(await api.getAuditLog());
-    notify(`${app?.name || "Application"} was rejected.`, "info");
-  }, [applications, adminName, notify]);
+    const application = applications.find((item) => item.id === applicationId);
+    await api.rejectApplication(applicationId, reason, adminName, application?.version);
+    await loadAll();
+    notify(`${application?.name || "Application"} was rejected.`, "info");
+  }, [adminName, applications, loadAll, notify]);
 
-  const patchUserInLists = useCallback((updated) => {
-    setCounsellors((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
-    setPeerCounsellors((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
-  }, []);
-
-  const updateUserStatus = useCallback(async (id, status, reason) => {
-    const updated = await api.updateUserStatus(id, status, reason, adminName);
-    patchUserInLists(updated);
-    setAuditLog(await api.getAuditLog());
-    const labels = { active: "reactivated", on_hold: "put on hold", deactivated: "deactivated" };
-    notify(`${updated.name} was ${labels[status] || status}.`, status === "deactivated" ? "info" : "success");
-    return updated;
-  }, [adminName, notify, patchUserInLists]);
-
-  const deleteUser = useCallback(async (id, reason) => {
-    const user = counsellors.find((u) => u.id === id) || peerCounsellors.find((u) => u.id === id);
-    await api.deleteUser(id, reason, adminName);
-    setCounsellors((prev) => prev.filter((u) => u.id !== id));
-    setPeerCounsellors((prev) => prev.filter((u) => u.id !== id));
-    setAuditLog(await api.getAuditLog());
-    notify(`${user?.name || "Profile"} was permanently deleted.`, "info");
-  }, [counsellors, peerCounsellors, adminName, notify]);
-
-  const getUserById = useCallback(
-    (id) => counsellors.find((u) => u.id === id) || peerCounsellors.find((u) => u.id === id) || null,
+  const allProviders = useMemo(
+    () => [...counsellors, ...peerCounsellors],
     [counsellors, peerCounsellors]
   );
 
-  const value = {
-    isLoading,
-    applications,
-    counsellors,
-    peerCounsellors,
-    auditLog,
-    notifications,
-    approveApplication,
-    rejectApplication,
-    updateUserStatus,
-    deleteUser,
-    getUserById,
-    refresh: loadAll,
-  };
+  const updateUserStatus = useCallback(async (id, status, reason) => {
+    const current = [...counsellors, ...peerCounsellors].find((user) => user.id === id);
+    const updated = await api.updateUserStatus(id, status, reason, adminName, current?.version);
+    await loadAll();
+    const labels = { active: "reactivated", on_hold: "suspended", deactivated: "revoked" };
+    notify(`${updated.name} was ${labels[status] || status}.`, status === "active" ? "success" : "info");
+    return updated;
+  }, [adminName, counsellors, loadAll, notify, peerCounsellors]);
 
-  return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
+  const deleteUser = useCallback(async (id, reason) => {
+    const user = allProviders.find((item) => item.id === id);
+    await api.deleteUser(id, reason, adminName, user?.version);
+    await loadAll();
+    notify(`${user?.name || "Provider"} access was revoked.`, "info");
+  }, [adminName, allProviders, loadAll, notify]);
+
+  const getUserById = useCallback(
+    (id) => allProviders.find((user) => user.id === id) || null,
+    [allProviders]
+  );
+
+  return (
+    <DataContext.Provider value={{
+      isLoading,
+      applications,
+      counsellors,
+      peerCounsellors,
+      auditLog,
+      notifications,
+      contentCounts,
+      contentCountsError,
+      approveApplication,
+      rejectApplication,
+      updateUserStatus,
+      deleteUser,
+      getUserById,
+      refresh: loadAll,
+      refreshContentCounts: loadContentCounts,
+    }}>
+      {children}
+    </DataContext.Provider>
+  );
 }
 
 export function useData() {
-  const ctx = useContext(DataContext);
-  if (!ctx) throw new Error("useData must be used within DataProvider");
-  return ctx;
+  const context = useContext(DataContext);
+  if (!context) throw new Error("useData must be used within DataProvider");
+  return context;
 }

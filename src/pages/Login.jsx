@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { Navigate } from "react-router-dom";
-import { HeartHandshake, Eye, EyeOff, Loader2, ShieldCheck, Users, LineChart } from "lucide-react";
+import { Eye, EyeOff, Loader2, ShieldCheck, Users, LineChart } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
 const HIGHLIGHTS = [
-  { icon: ShieldCheck, text: "Review and approve counsellor & peer counsellor applications" },
-  { icon: Users, text: "Manage account status: active, on hold, or deactivated" },
-  { icon: LineChart, text: "Track session activity and student evaluations in one place" },
+  { icon: ShieldCheck, text: "Review and approve counsellor & peer listener applications" },
+  { icon: Users, text: "Moderate video content, Joy Break clips, and campus CMS" },
+  { icon: LineChart, text: "Monitor system health, governance audit log, and user roles" },
 ];
 
 export default function Login() {
@@ -29,15 +29,13 @@ export default function Login() {
         <div className="absolute -bottom-32 -left-16 h-80 w-80 rounded-full bg-white/10 blur-3xl" />
 
         <div className="relative flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/15">
-            <HeartHandshake size={20} />
-          </div>
-          <span className="text-lg font-bold">Wellbeing Admin Portal</span>
+          <img src="/mindconnect-logo.png" alt="MindConnect" className="h-10 w-10 rounded-xl object-contain bg-white/20 p-1" />
+          <span className="text-lg font-bold">MindConnect Admin</span>
         </div>
 
         <div className="relative space-y-8">
           <h1 className="text-3xl font-bold leading-tight">
-            Supporting the people who support our students.
+            Production Control Center for Student Wellbeing.
           </h1>
           <ul className="space-y-4">
             {HIGHLIGHTS.map((item) => (
@@ -51,20 +49,18 @@ export default function Login() {
           </ul>
         </div>
 
-        <p className="relative text-xs text-brand-200">© 2026 Office of Student Wellbeing. All rights reserved.</p>
+        <p className="relative text-xs text-brand-200">© 2026 KNUST Counselling Centre · MindConnect Wellbeing.</p>
       </div>
 
       <div className="flex w-full flex-col justify-center px-6 py-12 sm:px-12 lg:w-1/2 lg:px-20">
         <div className="mx-auto w-full max-w-sm">
           <div className="mb-8 flex items-center gap-2.5 lg:hidden">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-600 text-white">
-              <HeartHandshake size={18} />
-            </div>
-            <span className="text-base font-bold text-slate-900">Wellbeing Admin Portal</span>
+            <img src="/mindconnect-logo.png" alt="MindConnect" className="h-9 w-9 rounded-xl object-contain" />
+            <span className="text-base font-bold text-slate-900">MindConnect Admin</span>
           </div>
 
           <h2 className="text-2xl font-bold text-slate-900">Welcome back</h2>
-          <p className="mt-1.5 text-sm text-slate-500">Sign in to manage counsellors and peer counsellors.</p>
+          <p className="mt-1.5 text-sm text-slate-500">Sign in to manage providers, content, and campus wellbeing.</p>
 
           <form onSubmit={handleSubmit} className="mt-8 space-y-4">
             <div>
@@ -124,7 +120,7 @@ export default function Login() {
           </form>
 
           <p className="mt-6 text-center text-xs text-slate-400">
-            Sign in with an approved admin account.
+            Sign in with an approved administrator account.
           </p>
         </div>
       </div>

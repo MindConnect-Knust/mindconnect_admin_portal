@@ -1,116 +1,136 @@
-import { useState } from "react";
-import { Bell, Save } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Bell, Database, ShieldCheck, Activity, CheckCircle, XCircle, RefreshCcw } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import { useToast } from "../context/ToastContext";
 import Avatar from "../components/common/Avatar";
+import { getSystemHealth } from "../services/contentApi";
 
-function Toggle({ checked, onChange, label, description }) {
-  return (
-    <label className="flex items-start justify-between gap-4 py-3.5">
-      <div>
-        <p className="text-sm font-medium text-slate-800">{label}</p>
-        {description && <p className="mt-0.5 text-xs text-slate-500">{description}</p>}
-      </div>
-      <button
-        type="button"
-        onClick={() => onChange(!checked)}
-        className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${checked ? "bg-brand-600" : "bg-slate-200"}`}
-        aria-pressed={checked}
-      >
-        <span
-          className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${checked ? "translate-x-5" : "translate-x-0.5"}`}
-        />
-      </button>
-    </label>
-  );
+const safeguards = [
+  {
+    icon: ShieldCheck,
+    title: "Server-authoritative access",
+    description: "Provider approval, suspension, reinstatement, and revocation are enforced by the API and recorded in the governance audit trail.",
+  },
+  {
+    icon: Bell,
+    title: "Live review queue",
+    description: "Sidebar badges reflect live data from the backend. Numbers update on every page load and manual refresh.",
+  },
+  {
+    icon: Database,
+    title: "Recorded activity only",
+    description: "Portal counts come from provider applications, appointments, and peer conversations. MindConnect does not infer ratings or fabricate evaluations.",
+  },
+];
+
+function HealthBadge({ status }) {
+  if (status === "ok") return <span className="inline-flex items-center gap-1 text-emerald-700 text-xs font-semibold"><CheckCircle size={13} /> Healthy</span>;
+  if (status === "error") return <span className="inline-flex items-center gap-1 text-rose-700 text-xs font-semibold"><XCircle size={13} /> Error</span>;
+  return <span className="text-slate-400 text-xs">—</span>;
 }
 
 export default function Settings() {
   const { admin } = useAuth();
-  const { notify } = useToast();
-  const [name, setName] = useState(admin?.name || "");
-  const [email, setEmail] = useState(admin?.email || "");
-  const [prefs, setPrefs] = useState({
-    newApplications: true,
-    lowRatingFlags: true,
-    weeklyDigest: false,
-  });
+  const [health, setHealth] = useState(null);
+  const [healthLoading, setHealthLoading] = useState(true);
+  const [healthError, setHealthError] = useState(null);
 
-  const handleSave = (e) => {
-    e.preventDefault();
-    notify("Account settings saved.", "success");
-  };
+  const loadHealth = useCallback(async () => {
+    setHealthLoading(true);
+    setHealthError(null);
+    try {
+      const data = await getSystemHealth();
+      setHealth(data);
+    } catch (err) {
+      setHealthError(err.message || "Health check failed.");
+    } finally {
+      setHealthLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { loadHealth(); }, [loadHealth]);
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div>
-        <h2 className="text-xl font-bold text-slate-900">Settings</h2>
-        <p className="mt-1 text-sm text-slate-500">Manage your admin account and notification preferences.</p>
+        <h2 className="text-xl font-bold text-slate-900">Settings &amp; Health</h2>
+        <p className="mt-1 text-sm text-slate-500">Administrator session and system status.</p>
       </div>
 
-      <form onSubmit={handleSave} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      {/* Admin session */}
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex items-center gap-4">
-          <Avatar name={name || "Admin"} size="xl" />
-          <div>
-            <p className="text-sm font-semibold text-slate-800">{admin?.role}</p>
-            <p className="text-xs text-slate-400">Program Administrator account</p>
+          <Avatar name={admin?.name || "Admin"} size="xl" />
+          <div className="min-w-0">
+            <p className="truncate text-base font-semibold text-slate-900">{admin?.name || "Administrator"}</p>
+            <p className="truncate text-sm text-slate-500">{admin?.email}</p>
+            <p className="mt-1 text-xs font-medium uppercase text-brand-700">{admin?.role}</p>
           </div>
         </div>
+        <p className="mt-5 border-t border-slate-100 pt-4 text-sm leading-6 text-slate-500">
+          Account identity and credentials are managed by the MindConnect backend. This portal does not persist profile or notification settings that the server does not support.
+        </p>
+      </section>
 
-        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700">Full name</label>
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/40"
-            />
+      {/* System health */}
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+            <Activity size={16} className="text-brand-600" /> System Health
+          </h3>
+          <button
+            onClick={loadHealth}
+            disabled={healthLoading}
+            className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700"
+          >
+            <RefreshCcw size={12} className={healthLoading ? "animate-spin" : ""} /> Refresh
+          </button>
+        </div>
+
+        {healthLoading && (
+          <div className="flex items-center gap-2 text-sm text-slate-400">
+            <RefreshCcw size={14} className="animate-spin" /> Checking…
           </div>
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700">Email address</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/40"
-            />
+        )}
+        {!healthLoading && healthError && (
+          <div className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
+            <p className="font-semibold">Health check failed</p>
+            <p className="text-xs mt-1">{healthError}</p>
           </div>
-        </div>
+        )}
+        {!healthLoading && health && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between py-2 border-b border-slate-100">
+              <span className="text-sm text-slate-700">API Status</span>
+              <HealthBadge status={health.status === "ok" ? "ok" : "error"} />
+            </div>
+            {health.services && Object.entries(health.services).map(([key, value]) => (
+              <div key={key} className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
+                <span className="text-sm text-slate-700 capitalize">{key.replace(/_/g, " ")}</span>
+                <HealthBadge status={value?.status || (value === "ok" ? "ok" : "error")} />
+              </div>
+            ))}
+            {health.version && (
+              <p className="text-xs text-slate-400 mt-2">Backend v{health.version} · {new Date().toLocaleString()}</p>
+            )}
+          </div>
+        )}
+      </section>
 
-        <button
-          type="submit"
-          className="mt-5 flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 transition-colors"
-        >
-          <Save size={15} /> Save changes
-        </button>
-      </form>
-
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex items-center gap-2 mb-1">
-          <Bell size={16} className="text-slate-400" />
-          <h3 className="text-sm font-semibold text-slate-800">Notification preferences</h3>
+      {/* Portal safeguards */}
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h3 className="text-sm font-semibold text-slate-900">Portal safeguards</h3>
+        <div className="mt-3 divide-y divide-slate-100">
+          {safeguards.map(({ icon: Icon, title, description }) => (
+            <div key={title} className="flex gap-3 py-4 first:pt-2 last:pb-0">
+              <Icon size={18} className="mt-0.5 shrink-0 text-brand-600" />
+              <div>
+                <p className="text-sm font-medium text-slate-800">{title}</p>
+                <p className="mt-1 text-sm leading-5 text-slate-500">{description}</p>
+              </div>
+            </div>
+          ))}
         </div>
-        <div className="divide-y divide-slate-100">
-          <Toggle
-            checked={prefs.newApplications}
-            onChange={(v) => setPrefs((p) => ({ ...p, newApplications: v }))}
-            label="New applications"
-            description="Get notified when someone applies to become a counsellor or peer counsellor."
-          />
-          <Toggle
-            checked={prefs.lowRatingFlags}
-            onChange={(v) => setPrefs((p) => ({ ...p, lowRatingFlags: v }))}
-            label="Low rating flags"
-            description="Get notified when a counsellor or peer counsellor's average rating drops significantly."
-          />
-          <Toggle
-            checked={prefs.weeklyDigest}
-            onChange={(v) => setPrefs((p) => ({ ...p, weeklyDigest: v }))}
-            label="Weekly digest"
-            description="A weekly summary of applications, activity, and program health."
-          />
-        </div>
-      </div>
+      </section>
     </div>
   );
 }

@@ -1,53 +1,75 @@
-// Minimal fetch wrapper for talking to the real MindConnect backend.
-// Throws a plain Error with a human-readable .message on any non-2xx
-// response, matching what AuthContext/DataContext already expect from
-// the mock api.js functions they call.
-
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
-
-// Token travels inside the same sessionStorage session object AuthContext
-// already persists (key "admin_portal_session"), so logging out clears it
-// in one place instead of two.
 const SESSION_KEY = "admin_portal_session";
+let refreshPromise = null;
 
-function getToken() {
+function getSession() {
   try {
     const raw = sessionStorage.getItem(SESSION_KEY);
-    return raw ? JSON.parse(raw).token : null;
+    return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
   }
 }
 
-async function request(path, { method = "GET", body } = {}) {
-  const headers = { "Content-Type": "application/json" };
-  const token = getToken();
-  if (token) headers.Authorization = `Bearer ${token}`;
+function updateStoredTokens(accessToken, refreshToken) {
+  const current = getSession();
+  if (!current) return;
+  sessionStorage.setItem(SESSION_KEY, JSON.stringify({ ...current, token: accessToken, refreshToken }));
+}
 
+async function refreshAccessToken() {
+  if (refreshPromise) return refreshPromise;
+  refreshPromise = (async () => {
+    const session = getSession();
+    if (!session?.refreshToken) return null;
+    const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refreshToken: session.refreshToken }),
+    });
+    const data = await response.json().catch(() => null);
+    if (!response.ok || !data?.accessToken || !data?.refreshToken) {
+      sessionStorage.removeItem(SESSION_KEY);
+      window.dispatchEvent(new Event("mindconnect:session-expired"));
+      return null;
+    }
+    updateStoredTokens(data.accessToken, data.refreshToken);
+    return data.accessToken;
+  })().finally(() => {
+    refreshPromise = null;
+  });
+  return refreshPromise;
+}
+
+async function request(path, { method = "GET", body } = {}, canRetry = true) {
+  const headers = { "Content-Type": "application/json" };
+  const token = getSession()?.token;
+  if (token) headers.Authorization = `Bearer ${token}`;
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method,
     headers,
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
 
-  let data = null;
-  try {
-    data = await response.json();
-  } catch {
-    // No JSON body (e.g. network-level failure) — fall through to the
-    // generic error below.
+  if (response.status === 401 && canRetry && !path.startsWith("/auth/")) {
+    const refreshed = await refreshAccessToken();
+    if (refreshed) return request(path, { method, body }, false);
   }
 
+  const data = await response.json().catch(() => null);
   if (!response.ok || !data || data.success === false) {
-    throw new Error((data && data.error) || `Request failed (${response.status})`);
-  }
-
-  return data;
+    const error = new Error(data?.error || 'Request failed (' + response.status + ')');
+    error.status = response.status;
+    error.code = data?.code;
+    error.data = data?.data;
+    throw error;
+  }  return data;
 }
 
 export const http = {
   get: (path) => request(path, { method: "GET" }),
   post: (path, body) => request(path, { method: "POST", body }),
   put: (path, body) => request(path, { method: "PUT", body }),
+  patch: (path, body) => request(path, { method: "PATCH", body }),
   delete: (path) => request(path, { method: "DELETE" }),
 };

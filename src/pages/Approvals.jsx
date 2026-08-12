@@ -18,7 +18,7 @@ export default function Approvals() {
   const peerApps = useMemo(() => applications.filter((a) => a.role === "peer_listener"), [applications]);
   const list = tab === "counsellor" ? counsellorApps : peerApps;
 
-  const handleApprove = async (reason) => {
+  const handleApprove = async () => {
     await approveApplication(approveTarget.id);
     setApproveTarget(null);
     setViewing(null);

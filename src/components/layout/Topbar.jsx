@@ -85,7 +85,7 @@ export default function Topbar({ onMenuClick, pageTitle }) {
           <button
             onClick={() => setNotifOpen((v) => !v)}
             className="relative rounded-lg p-2 text-slate-500 hover:bg-slate-100"
-            aria-label="Notifications"
+            aria-label="Open provider review queue"
           >
             <Bell size={19} />
             {unreadCount > 0 && (
@@ -95,11 +95,11 @@ export default function Topbar({ onMenuClick, pageTitle }) {
           {notifOpen && (
             <div className="absolute right-0 z-20 mt-1 w-80 overflow-hidden rounded-xl border border-slate-100 bg-white shadow-lg">
               <div className="border-b border-slate-100 px-4 py-3">
-                <p className="text-sm font-semibold text-slate-800">Notifications</p>
+                <p className="text-sm font-semibold text-slate-800">Provider review queue</p>
               </div>
               <div className="max-h-80 overflow-y-auto">
                 {notifications.length === 0 ? (
-                  <p className="px-4 py-6 text-center text-sm text-slate-400">No notifications yet.</p>
+                  <p className="px-4 py-6 text-center text-sm text-slate-400">No applications await review.</p>
                 ) : (
                   notifications.map((n) => (
                     <div key={n.id} className="flex gap-2 border-b border-slate-50 px-4 py-3 last:border-0">

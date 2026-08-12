@@ -1,270 +1,141 @@
-// Backend for the admin portal.
-//
-// Auth and the Approvals workflow (getApplications/approveApplication/
-// rejectApplication) talk to the real MindConnect backend via `http.js`.
-// Everything else (Counsellors, PeerCounsellors, Activity, UserProfile,
-// notifications) is still backed by the in-memory mock store seeded from
-// mockData.js — those pages have no real backend support yet (session
-// stats, ratings, evaluations, activity logs, document uploads).
-
 import { http } from "./http";
-import {
-  seedCounsellors,
-  seedPeerCounsellors,
-  seedAuditLog,
-  seedNotifications,
-  nextId,
-} from "../data/mockData";
+import { apiStatus, mapAuditEvent, mapProvider } from "./providerMappers";
 
-const LATENCY = 350;
-const delay = (ms = LATENCY) => new Promise((resolve) => setTimeout(resolve, ms));
+// ─── Auth ─────────────────────────────────────────────────────────────────────
 
-// In-memory store, mutated in place to simulate a persistent backend across
-// the session — used only by the still-mocked reads/actions below.
-const store = {
-  counsellors: [...seedCounsellors],
-  peerCounsellors: [...seedPeerCounsellors],
-  auditLog: [...seedAuditLog],
-  notifications: [...seedNotifications],
-};
-
-function addAuditEntry({ admin, action, targetName, targetRole, reason }) {
-  store.auditLog = [
-    {
-      id: nextId("audit"),
-      timestamp: new Date().toISOString(),
-      admin,
-      action,
-      targetName,
-      targetRole,
-      reason: reason || "",
-    },
-    ...store.auditLog,
-  ];
-}
-
-function findUserCollection(role) {
-  return role === "peer_listener" ? "peerCounsellors" : "counsellors";
-}
-
-// ---------------------------------------------------------------------------
-// Auth — real backend
-// ---------------------------------------------------------------------------
 export async function login(email, password) {
   const data = await http.post("/auth/login", { email, password, role: "admin" });
+  if (!data.accessToken || data.user?.role !== "admin") {
+    throw new Error("An administrator account is required.");
+  }
   return {
-    name: data.user?.name || email.split("@")[0],
-    email: data.user?.email || email,
+    name: data.user.name || email.split("@")[0],
+    email: data.user.email || email,
     role: "Program Administrator",
-    token: data.token,
+    token: data.accessToken,
+    refreshToken: data.refreshToken,
   };
 }
 
-// ---------------------------------------------------------------------------
-// Applications — real backend (users with approvalStatus: "pending")
-// ---------------------------------------------------------------------------
-function mapPendingUserToApplication(user) {
-  return {
-    id: user.id || user._id,
-    role: user.role,
-    name: user.name,
-    email: user.email,
-    phone: user.phone || "",
-    submittedAt: user.createdAt,
-    status: "pending",
-    // Lecturer/counsellor fields
-    title: user.title || "",
-    department: user.department || "",
-    yearsExperience: user.yearsExperience,
-    licenseNumber: user.licenseNumber || "",
-    qualifications: [],
-    // Peer counsellor fields
-    studentId: user.studentId || "",
-    program: user.program || "",
-    yearOfStudy: user.yearOfStudy,
-    trainingProgram: "",
-    referees: [],
-    // Shared
-    motivation: user.motivation || "",
-    documents: [],
-  };
+export async function logout(refreshToken) {
+  if (!refreshToken) return;
+  try {
+    await http.post("/auth/logout", { refreshToken });
+  } catch {
+    // Local logout still completes when the backend is unavailable.
+  }
 }
+
+// ─── Provider Applications ────────────────────────────────────────────────────
 
 export async function getApplications() {
-  const data = await http.get("/auth/users/pending");
-  return (data.data || []).map(mapPendingUserToApplication);
+  const data = await http.get("/providers/applications");
+  return (data.data || []).map(mapProvider);
 }
 
-export async function approveApplication(applicationId, adminName = "Admin") {
-  const data = await http.put(`/auth/users/${applicationId}/approve`, {});
-  const approvedUser = data.user;
-
-  // Reflect the approval in the still-mocked active-user lists so the
-  // Counsellors/PeerCounsellors pages have something to show — those pages
-  // don't read from the real backend yet.
-  const newUser = {
-    id: approvedUser.id,
-    role: approvedUser.role,
-    name: approvedUser.name,
-    email: approvedUser.email,
-    phone: "",
-    joinedAt: new Date().toISOString(),
-    status: "active",
-    stats: {
-      sessionsThisMonth: 0,
-      totalSessions: 0,
-      studentsSeen: 0,
-      avgRating: 0,
-      avgResponseTimeHrs: 0,
-      lastActiveAt: null,
-    },
-    ratingTrend: [],
-    evaluations: [],
-    activityLog: [],
-    adminNotes: [
-      {
-        id: nextId("note"),
-        date: new Date().toISOString(),
-        admin: adminName,
-        action: "approved",
-        note: "Application approved after review.",
-      },
-    ],
-  };
-
-  store[findUserCollection(approvedUser.role)] = [
-    newUser,
-    ...store[findUserCollection(approvedUser.role)],
-  ];
-
-  addAuditEntry({
-    admin: adminName,
-    action: "Approved application",
-    targetName: approvedUser.name,
-    targetRole: approvedUser.role,
-    reason: "",
+export async function approveApplication(applicationId, _adminName, version) {
+  const data = await http.patch(`/providers/${applicationId}/status`, {
+    status: "APPROVED",
+    version,
   });
-
-  return newUser;
+  return mapProvider(data.data);
 }
 
-export async function rejectApplication(applicationId, reason, adminName = "Admin") {
-  if (!reason || !reason.trim()) throw new Error("A reason is required to reject an application.");
-
-  const data = await http.put(`/auth/users/${applicationId}/reject`, { reason });
-  const rejectedUser = data.user;
-
-  addAuditEntry({
-    admin: adminName,
-    action: "Rejected application",
-    targetName: rejectedUser?.name,
-    targetRole: rejectedUser?.role,
-    reason,
+export async function rejectApplication(applicationId, reason, _adminName, version) {
+  if (!reason?.trim()) throw new Error("A reason is required to reject an application.");
+  const data = await http.patch(`/providers/${applicationId}/status`, {
+    status: "REJECTED",
+    reason: reason.trim(),
+    version,
   });
-
-  return { id: applicationId };
+  return mapProvider(data.data);
 }
 
-// ---------------------------------------------------------------------------
-// Reads — still mocked
-// ---------------------------------------------------------------------------
-export async function getCounsellors() {
-  await delay();
-  return [...store.counsellors];
+// ─── Providers (approved / active) ───────────────────────────────────────────
+
+async function getProviders(role) {
+  const data = await http.get(`/providers?role=${encodeURIComponent(role)}`);
+  return (data.data || [])
+    .filter((row) => ["APPROVED", "SUSPENDED", "REVOKED"].includes(row.status))
+    .map(mapProvider);
 }
 
-export async function getPeerCounsellors() {
-  await delay();
-  return [...store.peerCounsellors];
-}
+export const getCounsellors = () => getProviders("counsellor");
+export const getPeerCounsellors = () => getProviders("peer_listener");
 
 export async function getAuditLog() {
-  await delay();
-  return [...store.auditLog];
+  const data = await http.get("/providers/audit");
+  return (data.data || []).map(mapAuditEvent);
 }
 
 export async function getNotifications() {
-  await delay(150);
-  return [...store.notifications];
+  const applications = await getApplications();
+  return applications.slice(0, 20).map((application) => ({
+    id: `application-${application.id}-${application.version}`,
+    type: "application",
+    message: `${application.name} submitted a ${application.role === "peer_listener" ? "peer listener" : "counsellor"} application.`,
+    timestamp: application.submittedAt,
+    read: false,
+  }));
 }
 
 export async function getUserById(id) {
-  await delay();
-  const user =
-    store.counsellors.find((u) => u.id === id) ||
-    store.peerCounsellors.find((u) => u.id === id);
-  if (!user) throw new Error("User not found.");
-  return user;
+  const data = await http.get(`/providers/${id}`);
+  return mapProvider(data.data);
 }
 
-// ---------------------------------------------------------------------------
-// Lifecycle actions on approved users — still mocked
-// ---------------------------------------------------------------------------
-export async function updateUserStatus(id, status, reason, adminName = "Admin") {
-  await delay(450);
-  if (["on_hold", "deactivated"].includes(status) && (!reason || !reason.trim())) {
+export async function updateUserStatus(id, status, reason, _adminName, version) {
+  const target = apiStatus(status);
+  if (["SUSPENDED", "REVOKED"].includes(target) && !reason?.trim()) {
     throw new Error("A reason is required for this action.");
   }
-
-  let user = null;
-  for (const key of ["counsellors", "peerCounsellors"]) {
-    const idx = store[key].findIndex((u) => u.id === id);
-    if (idx !== -1) {
-      const actionLabel = { active: "Reactivated", on_hold: "Put on hold", deactivated: "Deactivated" }[status] || status;
-      user = {
-        ...store[key][idx],
-        status,
-        adminNotes: [
-          {
-            id: nextId("note"),
-            date: new Date().toISOString(),
-            admin: adminName,
-            action: status,
-            note: reason || `${actionLabel} by admin.`,
-          },
-          ...store[key][idx].adminNotes,
-        ],
-      };
-      store[key] = [...store[key]];
-      store[key][idx] = user;
-
-      addAuditEntry({
-        admin: adminName,
-        action: actionLabel,
-        targetName: user.name,
-        targetRole: user.role,
-        reason: reason || "",
-      });
-      break;
-    }
-  }
-
-  if (!user) throw new Error("User not found.");
-  return user;
+  const data = await http.patch(`/providers/${id}/status`, {
+    status: target,
+    reason: reason?.trim() || undefined,
+    version,
+  });
+  return mapProvider(data.data);
 }
 
-export async function deleteUser(id, reason, adminName = "Admin") {
-  await delay(450);
-  if (!reason || !reason.trim()) throw new Error("A reason is required to delete a profile.");
+// Kept under the old function name so existing dialogs remain wired. The
+// operation is an auditable revocation, never a destructive account delete.
+export async function deleteUser(id, reason, adminName, version) {
+  return updateUserStatus(id, "deactivated", reason, adminName, version);
+}
 
-  let removed = null;
-  for (const key of ["counsellors", "peerCounsellors"]) {
-    const found = store[key].find((u) => u.id === id);
-    if (found) {
-      removed = found;
-      store[key] = store[key].filter((u) => u.id !== id);
-      break;
-    }
-  }
-  if (!removed) throw new Error("User not found.");
+// ─── User Management ──────────────────────────────────────────────────────────
 
-  addAuditEntry({
-    admin: adminName,
-    action: "Deleted profile",
-    targetName: removed.name,
-    targetRole: removed.role,
-    reason,
-  });
+export async function listUsers({ page = 1, limit = 20, search } = {}) {
+  const params = new URLSearchParams();
+  params.set("page", String(page));
+  params.set("limit", String(limit));
+  if (search) params.set("search", search);
+  const data = await http.get(`/auth/users?${params}`);
+  return {
+    users: (data.data || []).map(safeUserView),
+    count: data.count || 0,
+    total: data.total || (data.data || []).length,
+  };
+}
 
-  return { id };
+export async function setUserRole(id, role) {
+  const data = await http.put(`/auth/users/${id}/role`, { role });
+  return safeUserView(data.data || data.user || {});
+}
+
+function safeUserView(user) {
+  // Strip all sensitive / wellness fields before returning to UI.
+  return {
+    id: String(user._id || user.id || ""),
+    name: user.name || "",
+    email: user.email || "",
+    role: user.role || "student",
+    accountStatus: user.accountStatus || "active",
+    createdAt: user.createdAt,
+    avatar: user.avatar || "",
+    // Provider application summary — safe operational state only.
+    providerStatus: user.providerApplication?.status || null,
+    providerType: user.providerApplication?.providerType || null,
+    providerActive: user.providerApplication?.active || false,
+  };
 }
