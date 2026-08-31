@@ -9,6 +9,7 @@ import {
   cancelPushCampaign,
   confirmPushCampaign,
   createPushCampaign,
+  getAdminDeliveryStatus,
   getPushCampaignStats,
   getPushHealth,
   listPushCampaigns,
@@ -47,6 +48,7 @@ export default function PushNotifications() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [testDelivery, setTestDelivery] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -105,17 +107,30 @@ export default function PushNotifications() {
   const handleSelfTest = async () => {
     setTesting(true);
     try {
-      await adminSelfTestPush({
+      const queued = await adminSelfTestPush({
         title: 'Admin Verification Push',
         body: 'Push delivery service test from MindConnect Admin Console.',
         route: 'home',
       });
+      setTestDelivery({ id: queued.id, outbox: { status: queued.status }, deliveries: [] });
       notify('Test notification queued for your registered admin device.', 'success');
+      const delivery = await getAdminDeliveryStatus(queued.id);
+      setTestDelivery({ id: queued.id, ...delivery });
       await load();
     } catch (error) {
       notify(error.message || 'Could not send test push.', 'error');
     } finally {
       setTesting(false);
+    }
+  };
+
+  const refreshTestDelivery = async () => {
+    if (!testDelivery?.id) return;
+    try {
+      const delivery = await getAdminDeliveryStatus(testDelivery.id);
+      setTestDelivery({ id: testDelivery.id, ...delivery });
+    } catch (error) {
+      notify(error.message || 'Could not refresh test delivery status.', 'error');
     }
   };
 
@@ -195,6 +210,39 @@ export default function PushNotifications() {
         </div>
       )}
 
+      {health && !health.workerRunning && (
+        <div className="flex gap-3.5 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900 shadow-sm">
+          <ShieldAlert size={20} className="shrink-0 text-rose-600 mt-0.5" />
+          <div>
+            <p className="font-semibold">Notification worker heartbeat is stale</p>
+            <p className="text-rose-800">Queued notifications will remain durable, but they will not leave the outbox until the dedicated worker is running.</p>
+          </div>
+        </div>
+      )}
+
+      {testDelivery && (
+        <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="font-semibold text-slate-900">Admin test delivery status</p>
+              <p className="mt-1 text-slate-600">
+                Outbox: <strong>{testDelivery.outbox?.status || 'unknown'}</strong>
+                {' | '}Provider records: {testDelivery.deliveries?.length || 0}
+                {' | '}Receipts checked: {testDelivery.deliveries?.filter((item) => item.receiptCheckedAt).length || 0}
+              </p>
+              {testDelivery.deliveries?.length > 0 && (
+                <p className="mt-1 font-mono text-xs text-slate-500">
+                  {testDelivery.deliveries.map((item) => item.status).join(', ')}
+                </p>
+              )}
+            </div>
+            <button onClick={refreshTestDelivery} className="rounded-lg bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-200">
+              Refresh ticket / receipt
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Metrics Row */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Metric
@@ -207,12 +255,12 @@ export default function PushNotifications() {
           label="Outbox Pending Queue"
           value={health?.pendingOutbox ?? 0}
           icon={Clock}
-          detail={health?.workersEnabled ? 'Worker active (5s poll)' : 'Worker PAUSED'}
+          detail={health?.workerRunning ? 'Dedicated worker heartbeat active' : 'Worker NOT RUNNING'}
           highlight={health?.pendingOutbox > 50}
         />
         <Metric
           label="Delivery Provider"
-          value={health?.providerConfigured ? 'READY' : 'UNCONFIGURED'}
+          value={health?.providerConfigured ? 'CONFIGURED' : 'UNCONFIGURED'}
           icon={Send}
           detail={health?.lastSuccessfulPushAt ? `Last push: ${new Date(health.lastSuccessfulPushAt).toLocaleTimeString()}` : 'No recent deliveries'}
           statusColor={health?.providerConfigured ? 'text-emerald-600' : 'text-amber-600'}

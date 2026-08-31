@@ -22,10 +22,11 @@ const safeguards = [
   },
 ];
 
-function HealthBadge({ status }) {
+function HealthBadge({ status, code }) {
   if (status === "ok") return <span className="inline-flex items-center gap-1 text-emerald-700 text-xs font-semibold"><CheckCircle size={13} /> Healthy</span>;
+  if (status === "configured") return <span className="inline-flex items-center gap-1 text-amber-700 text-xs font-semibold"><Activity size={13} /> Configured, awaiting use</span>;
   if (status === "error") return <span className="inline-flex items-center gap-1 text-rose-700 text-xs font-semibold"><XCircle size={13} /> Error</span>;
-  return <span className="text-slate-400 text-xs">—</span>;
+  return <span className="text-slate-400 text-xs">{code || "Unknown"}</span>;
 }
 
 export default function Settings() {
@@ -104,9 +105,19 @@ export default function Settings() {
               <HealthBadge status={health.status === "ok" ? "ok" : "error"} />
             </div>
             {health.services && Object.entries(health.services).map(([key, value]) => (
-              <div key={key} className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
+              <div key={key} className="flex items-start justify-between gap-4 py-2 border-b border-slate-100 last:border-0">
                 <span className="text-sm text-slate-700 capitalize">{key.replace(/_/g, " ")}</span>
-                <HealthBadge status={value?.status || (value === "ok" ? "ok" : "error")} />
+                <div className="text-right">
+                  <HealthBadge
+                    status={value?.status || (value === "ok" ? "ok" : "error")}
+                    code={value?.code}
+                  />
+                  {value?.code && (
+                    <p className="mt-1 max-w-64 break-all text-[10px] text-slate-400">
+                      {value.code}
+                    </p>
+                  )}
+                </div>
               </div>
             ))}
             {health.version && (

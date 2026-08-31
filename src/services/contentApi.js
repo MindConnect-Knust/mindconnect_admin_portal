@@ -8,6 +8,7 @@
  * token refresh, and error normalisation.
  */
 import { http } from "./http";
+import { mapSystemHealth } from "./systemHealth";
 
 // ─── Content Library ──────────────────────────────────────────────────────────
 
@@ -197,13 +198,12 @@ export async function getDashboardContentCounts() {
 // ─── System Health ────────────────────────────────────────────────────────────
 
 export async function getSystemHealth() {
-  // Health endpoint is unauthenticated but we call it through http so any
-  // error is normalised the same way. We need to call the raw API base URL
-  // directly because it is not under /api/...
-  const base = (import.meta.env.VITE_API_URL || "http://localhost:5000/api").replace(/\/api$/, "");
-  const res = await fetch(`${base}/api/health`);
-  if (!res.ok) throw new Error(`Health check failed (${res.status})`);
-  return res.json();
+  const [base, pushResponse, aiResponse] = await Promise.all([
+    http.get('/health'),
+    http.get('/notifications/admin/health'),
+    http.get('/ai/admin/health'),
+  ]);
+  return mapSystemHealth(base, pushResponse, aiResponse);
 }
 
 // ─── Appointments (admin) ─────────────────────────────────────────────────────

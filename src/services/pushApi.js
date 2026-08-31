@@ -52,3 +52,8 @@ export async function adminSelfTestPush({ title, body, route } = {}) {
   });
   return data.data;
 }
+
+export async function getAdminDeliveryStatus(id) {
+  const data = await http.get(`/notifications/admin/deliveries/${id}`);
+  return data.data;
+}
