@@ -1,5 +1,7 @@
 const APP_ENV = String(import.meta.env.VITE_APP_ENV || (import.meta.env.PROD ? 'production' : 'development')).trim().toLowerCase();
-const RAW_API_URL = String(import.meta.env.VITE_API_URL || '').trim().replace(/\/+$/, '');
+const RAW_API_URL = String(
+  import.meta.env.VITE_API_URL || (APP_ENV === 'development' ? 'https://mind-connect-backend-wg2b.onrender.com/api' : '')
+).trim().replace(/\/+$/, '');
 const SESSION_KEY = 'admin_portal_session';
 const REQUEST_TIMEOUT_MS = 60000;
 let refreshPromise = null;
