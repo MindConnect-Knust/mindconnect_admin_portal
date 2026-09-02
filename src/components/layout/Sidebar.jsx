@@ -3,7 +3,7 @@ import {
   LayoutDashboard, ClipboardCheck, UserCog, GraduationCap, CalendarDays,
   Film, Laugh, ShieldCheck, Newspaper, BookOpen, CalendarCheck,
   Users, FileText, ListChecks, History, Settings, X, Database, TriangleAlert,
-  MonitorPlay, Layers, Bell,
+  MonitorPlay, Layers, Bell, ClipboardList,
 } from "lucide-react";
 import { useData } from "../../context/DataContext";
 
@@ -110,6 +110,7 @@ export default function Sidebar({ open, onClose }) {
           <NavItem to="/content/reels" label="Reels" icon={Film} onClick={onClose} />
           <NavItem to="/content/trusted-sources" label="Trusted Sources" icon={ShieldCheck} onClick={onClose} />
           <NavItem to="/content/source-candidates" label="Source Candidates" icon={Database} onClick={onClose} />
+          <NavItem to="/content/assessments" label="Wellbeing Check-up" icon={ClipboardList} onClick={onClose} />
 
           {/* CMS */}
           <p className={SECTION}>CMS</p>
@@ -151,3 +152,4 @@ export default function Sidebar({ open, onClose }) {
     </>
   );
 }
+
