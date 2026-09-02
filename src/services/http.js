@@ -4,6 +4,13 @@ const RAW_API_URL = String(
 ).trim().replace(/\/+$/, '');
 const SESSION_KEY = 'admin_portal_session';
 const REQUEST_TIMEOUT_MS = 60000;
+const CLIENT_TYPE = 'admin-web';
+const APP_VERSION = String(import.meta.env.VITE_APP_VERSION || '0.0.0').trim();
+const APP_BUILD = String(import.meta.env.VITE_BUILD_REVISION || import.meta.env.VITE_COMMIT_SHA || 'local').trim();
+const safeHeaderValue = (value, fallback) => {
+  const normalized = String(value || fallback || '').trim().slice(0, 128);
+  return /^[A-Za-z0-9._-]{1,128}$/.test(normalized) ? normalized : fallback;
+};
 let refreshPromise = null;
 
 const resolveApiBaseUrl = () => {
@@ -96,7 +103,15 @@ async function request(path, { method = 'GET', body } = {}, canRetry = true) {
     error.code = 'API_CONFIGURATION_ERROR';
     throw error;
   }
-  const headers = { 'Content-Type': 'application/json' };
+  const headers = {
+    'Content-Type': 'application/json',
+    'X-MindConnect-Client': CLIENT_TYPE,
+    'X-MindConnect-Platform': 'web',
+    'X-MindConnect-App-Version': safeHeaderValue(APP_VERSION, '0.0.0'),
+    'X-MindConnect-App-Build': safeHeaderValue(APP_BUILD, 'local'),
+    'X-MindConnect-Bundle-ID': 'mindconnect-admin-portal',
+    'X-MindConnect-Environment': safeHeaderValue(APP_ENV, 'development'),
+  };
   const token = getSession()?.token;
   if (token) headers.Authorization = `Bearer ${token}`;
   const response = await fetchWithTimeout(`${API_BASE_URL}${path}`, {

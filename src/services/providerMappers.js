@@ -74,6 +74,11 @@ export function mapProvider(row) {
     languages: profile.languages || [],
     specialties: profile.specialties || [],
     organization: profile.organization || "",
+    qualification: profile.qualification || "",
+    location: profile.location || "",
+    serviceModes: profile.serviceModes || [],
+    profileImage: profile.profileImage || null,
+    profileReadiness: row.profileReadiness || { ready: false, missing: [] },
     yearsExperience: profile.yearsExperience,
     professionalRegistrationNumber:
       row.verificationData?.professionalRegistrationNumber || "",

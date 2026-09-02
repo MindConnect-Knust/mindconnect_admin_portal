@@ -180,6 +180,16 @@ export async function updateContentReport(id, action) {
  * Returns lightweight counts for the dashboard without fetching full records.
  * Uses Promise.allSettled so a single failed count doesn't crash the whole dashboard.
  */
+// Assessment Templates
+export async function listAssessmentTemplates() {
+  const data = await http.get('/content/assessment/manage');
+  return { templates: data.data || [], count: data.count || 0 };
+}
+
+export async function saveAssessmentTemplate(fields) {
+  const data = await http.put('/content/assessment/manage', fields);
+  return data.data;
+}
 export async function getDashboardContentCounts() {
   const [videoPending, joyPending, published, openReports] = await Promise.allSettled([
     http.get("/feed/manage/items?status=review&type=VIDEO&limit=1").then((d) => d.count || 0),
@@ -225,3 +235,5 @@ export async function listAppointmentsAdmin({ status, counsellor, from, to, page
     pages: data.pages || 1,
   };
 }
+
+
