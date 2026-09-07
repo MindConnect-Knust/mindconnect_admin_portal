@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { Bell, Database, ShieldCheck, Activity, CheckCircle, XCircle, RefreshCcw } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Bell, Database, ShieldCheck, Activity, CheckCircle, XCircle, RefreshCcw, ArrowRight } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import Avatar from "../components/common/Avatar";
 import { getSystemHealth } from "../services/contentApi";
@@ -78,13 +79,21 @@ export default function Settings() {
           <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
             <Activity size={16} className="text-brand-600" /> System Health
           </h3>
-          <button
-            onClick={loadHealth}
-            disabled={healthLoading}
-            className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700"
-          >
-            <RefreshCcw size={12} className={healthLoading ? "animate-spin" : ""} /> Refresh
-          </button>
+          <div className="flex items-center gap-3">
+            <Link
+              to="/administration/system-health"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:text-brand-700"
+            >
+              Full Observability <ArrowRight size={12} />
+            </Link>
+            <button
+              onClick={loadHealth}
+              disabled={healthLoading}
+              className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700"
+            >
+              <RefreshCcw size={12} className={healthLoading ? "animate-spin" : ""} /> Refresh
+            </button>
+          </div>
         </div>
 
         {healthLoading && (

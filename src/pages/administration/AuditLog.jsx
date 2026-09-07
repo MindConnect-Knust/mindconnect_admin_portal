@@ -1,4 +1,3 @@
-import { useCallback } from "react";
 import { History, RefreshCcw } from "lucide-react";
 import { useData } from "../../context/DataContext";
 import EmptyState from "../../components/common/EmptyState";

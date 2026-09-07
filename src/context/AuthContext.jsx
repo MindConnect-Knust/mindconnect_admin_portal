@@ -15,6 +15,11 @@ export function AuthProvider({ children }) {
   });
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
+
+  useEffect(() => {
+    setIsInitializing(false);
+  }, []);
 
   useEffect(() => {
     if (admin) sessionStorage.setItem(STORAGE_KEY, JSON.stringify(admin));
@@ -22,7 +27,10 @@ export function AuthProvider({ children }) {
   }, [admin]);
 
   useEffect(() => {
-    const expire = () => setAdmin(null);
+    const expire = () => {
+      setAdmin(null);
+      setError("Your session expired. Please sign in again.");
+    };
     window.addEventListener("mindconnect:session-expired", expire);
     return () => window.removeEventListener("mindconnect:session-expired", expire);
   }, []);
@@ -44,12 +52,28 @@ export function AuthProvider({ children }) {
   }, []);
 
   const logout = useCallback(async () => {
-    await api.logout(admin?.refreshToken);
-    setAdmin(null);
+    try {
+      await api.logout(admin?.refreshToken);
+    } catch {
+      // Best-effort logout
+    } finally {
+      sessionStorage.removeItem(STORAGE_KEY);
+      setAdmin(null);
+    }
   }, [admin?.refreshToken]);
 
   return (
-    <AuthContext.Provider value={{ admin, isAuthenticated: Boolean(admin), login, logout, error, isLoading }}>
+    <AuthContext.Provider
+      value={{
+        admin,
+        isAuthenticated: Boolean(admin),
+        isInitializing,
+        login,
+        logout,
+        error,
+        isLoading,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

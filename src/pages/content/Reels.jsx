@@ -4,6 +4,9 @@ import { listContent } from "../../services/contentApi";
 import EmptyState from "../../components/common/EmptyState";
 import VideoPreviewModal from "../../components/content/VideoPreviewModal";
 import ModerationActions from "../../components/content/ModerationActions";
+import Pagination from "../../components/common/Pagination";
+
+const PAGE_SIZE = 12;
 
 // Reels = approved/published VIDEO items with short duration.
 // We show all approved/published videos and let admin manage them.
@@ -16,6 +19,7 @@ const STATUS_TABS = [
 export default function Reels() {
   const [items, setItems] = useState([]);
   const [count, setCount] = useState(0);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [statusTab, setStatusTab] = useState("approved");
@@ -25,8 +29,8 @@ export default function Reels() {
     setLoading(true);
     setError(null);
     try {
-      const result = await listContent({ type: "VIDEO", status: statusTab });
-      // Filter to short-form eligible (≤ 3 minutes = 180 seconds) for Reels context.
+      const result = await listContent({ type: "VIDEO", status: statusTab, limit: 100 });
+      // Filter to short-form eligible (≤ 5 minutes = 300 seconds) for Reels context.
       const reelsItems = result.items.filter((i) => !i.durationSeconds || i.durationSeconds <= 300);
       setItems(reelsItems);
       setCount(reelsItems.length);
@@ -38,6 +42,14 @@ export default function Reels() {
   }, [statusTab]);
 
   useEffect(() => { load(); }, [load]);
+
+  const handleTabChange = (newTab) => {
+    setStatusTab(newTab);
+    setPage(1);
+  };
+
+  const totalPages = Math.ceil(items.length / PAGE_SIZE) || 1;
+  const paginatedItems = items.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <div className="space-y-5">
@@ -55,7 +67,7 @@ export default function Reels() {
         {STATUS_TABS.map((tab) => (
           <button
             key={tab.value}
-            onClick={() => setStatusTab(tab.value)}
+            onClick={() => handleTabChange(tab.value)}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
               statusTab === tab.value
                 ? "bg-brand-600 text-white"
@@ -74,7 +86,7 @@ export default function Reels() {
         <>
           <p className="text-xs text-slate-400">{count} item{count !== 1 ? "s" : ""}</p>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {items.map((item) => (
+            {paginatedItems.map((item) => (
               <div key={item._id} className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm">
                 <div className="relative aspect-video bg-slate-100">
                   {item.thumbnailUrl
@@ -98,6 +110,14 @@ export default function Reels() {
               </div>
             ))}
           </div>
+
+          <Pagination
+            page={page}
+            pages={totalPages}
+            count={count}
+            pageSize={PAGE_SIZE}
+            onPageChange={setPage}
+          />
         </>
       )}
 

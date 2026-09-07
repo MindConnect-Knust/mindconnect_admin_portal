@@ -4,6 +4,9 @@ import { listContent } from "../../services/contentApi";
 import EmptyState from "../../components/common/EmptyState";
 import VideoPreviewModal from "../../components/content/VideoPreviewModal";
 import ModerationActions from "../../components/content/ModerationActions";
+import Pagination from "../../components/common/Pagination";
+
+const PAGE_SIZE = 12;
 
 const STATUS_TABS = [
   { value: "", label: "All" },
@@ -82,6 +85,8 @@ function VideoCard({ item, onPreview, onDone }) {
 export default function VideoModeration() {
   const [items, setItems] = useState([]);
   const [count, setCount] = useState(0);
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [statusTab, setStatusTab] = useState("review");
@@ -91,17 +96,28 @@ export default function VideoModeration() {
     setLoading(true);
     setError(null);
     try {
-      const result = await listContent({ type: "VIDEO", status: statusTab || undefined });
+      const result = await listContent({
+        type: "VIDEO",
+        status: statusTab || undefined,
+        page,
+        limit: PAGE_SIZE,
+      });
       setItems(result.items);
       setCount(result.count);
+      setPages(result.pages || 1);
     } catch (err) {
       setError(err.message || "Failed to load videos.");
     } finally {
       setLoading(false);
     }
-  }, [statusTab]);
+  }, [statusTab, page]);
 
   useEffect(() => { load(); }, [load]);
+
+  const handleTabChange = (newTab) => {
+    setStatusTab(newTab);
+    setPage(1);
+  };
 
   return (
     <div className="space-y-5">
@@ -120,7 +136,7 @@ export default function VideoModeration() {
         {STATUS_TABS.map((tab) => (
           <button
             key={tab.value}
-            onClick={() => setStatusTab(tab.value)}
+            onClick={() => handleTabChange(tab.value)}
             className={`px-3 py-2 text-sm font-medium rounded-t-lg transition-colors ${
               statusTab === tab.value
                 ? "border-b-2 border-brand-600 text-brand-700 bg-brand-50"
@@ -155,6 +171,14 @@ export default function VideoModeration() {
               <VideoCard key={item._id} item={item} onPreview={setPreviewing} onDone={load} />
             ))}
           </div>
+
+          <Pagination
+            page={page}
+            pages={pages}
+            count={count}
+            pageSize={PAGE_SIZE}
+            onPageChange={setPage}
+          />
         </>
       )}
 

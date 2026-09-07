@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { Eye, EyeOff, Loader2, ShieldCheck, Users, LineChart } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
@@ -11,11 +11,18 @@ const HIGHLIGHTS = [
 
 export default function Login() {
   const { login, isAuthenticated, error, isLoading } = useAuth();
+  const location = useLocation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  if (isAuthenticated) return <Navigate to="/" replace />;
+  // Safely resolve the return path; guard against external or malformed URLs
+  const rawFrom = location.state?.from?.pathname;
+  const from = (rawFrom && typeof rawFrom === "string" && rawFrom.startsWith("/") && !rawFrom.startsWith("//") && rawFrom !== "/login")
+    ? (rawFrom + (location.state?.from?.search || ""))
+    : "/";
+
+  if (isAuthenticated) return <Navigate to={from} replace />;
 
   const handleSubmit = async (e) => {
     e.preventDefault();

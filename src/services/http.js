@@ -77,20 +77,30 @@ async function refreshAccessToken() {
   if (refreshPromise) return refreshPromise;
   refreshPromise = (async () => {
     const session = getSession();
-    if (!session?.refreshToken) return null;
-    const response = await fetchWithTimeout(`${API_BASE_URL}/auth/refresh`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refreshToken: session.refreshToken }),
-    });
-    const data = await response.json().catch(() => null);
-    if (!response.ok || !data?.accessToken || !data?.refreshToken) {
+    if (!session?.refreshToken) {
       sessionStorage.removeItem(SESSION_KEY);
       window.dispatchEvent(new Event('mindconnect:session-expired'));
       return null;
     }
-    updateStoredTokens(data.accessToken, data.refreshToken);
-    return data.accessToken;
+    try {
+      const response = await fetchWithTimeout(`${API_BASE_URL}/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken: session.refreshToken }),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok || !data?.accessToken || !data?.refreshToken) {
+        sessionStorage.removeItem(SESSION_KEY);
+        window.dispatchEvent(new Event('mindconnect:session-expired'));
+        return null;
+      }
+      updateStoredTokens(data.accessToken, data.refreshToken);
+      return data.accessToken;
+    } catch {
+      sessionStorage.removeItem(SESSION_KEY);
+      window.dispatchEvent(new Event('mindconnect:session-expired'));
+      return null;
+    }
   })().finally(() => {
     refreshPromise = null;
   });

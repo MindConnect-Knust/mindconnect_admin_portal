@@ -4,6 +4,9 @@ import { listContent } from "../../services/contentApi";
 import EmptyState from "../../components/common/EmptyState";
 import VideoPreviewModal from "../../components/content/VideoPreviewModal";
 import ModerationActions from "../../components/content/ModerationActions";
+import Pagination from "../../components/common/Pagination";
+
+const PAGE_SIZE = 12;
 
 const STATUS_TABS = [
   { value: "", label: "All Clips" },
@@ -39,7 +42,7 @@ const HUMOR_FLAGS = [
   "HUMOR_HATE_CONTENT",
 ];
 
-function JoyClipCard({ item, onPreview, onDone, sources }) {
+function JoyClipCard({ item, onPreview, onDone }) {
   const humorFlags = (item.contentSafetyFlags || []).filter((f) => HUMOR_FLAGS.includes(f));
   const otherFlags = (item.contentSafetyFlags || []).filter((f) => !HUMOR_FLAGS.includes(f));
 
@@ -105,6 +108,8 @@ function JoyClipCard({ item, onPreview, onDone, sources }) {
 export default function JoyBreak() {
   const [items, setItems] = useState([]);
   const [count, setCount] = useState(0);
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(1);
   const [sources, setSources] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -120,9 +125,12 @@ export default function JoyBreak() {
         joy: true,
         status: statusTab || undefined,
         source: sourceFilter || undefined,
+        page,
+        limit: PAGE_SIZE,
       });
       setItems(result.items);
       setCount(result.count);
+      setPages(result.pages || 1);
       // Extract unique sources from the returned items for the filter dropdown.
       setSources([...new Set(result.items.map((i) => i.sourceName).filter(Boolean))].sort());
     } catch (err) {
@@ -130,9 +138,19 @@ export default function JoyBreak() {
     } finally {
       setLoading(false);
     }
-  }, [statusTab, sourceFilter]);
+  }, [statusTab, sourceFilter, page]);
 
   useEffect(() => { load(); }, [load]);
+
+  const handleTabChange = (newTab) => {
+    setStatusTab(newTab);
+    setPage(1);
+  };
+
+  const handleSourceChange = (newSource) => {
+    setSourceFilter(newSource);
+    setPage(1);
+  };
 
   return (
     <div className="space-y-5">
@@ -161,7 +179,7 @@ export default function JoyBreak() {
           {STATUS_TABS.map((tab) => (
             <button
               key={tab.value}
-              onClick={() => setStatusTab(tab.value)}
+              onClick={() => handleTabChange(tab.value)}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                 statusTab === tab.value
                   ? "bg-brand-600 text-white"
@@ -175,7 +193,7 @@ export default function JoyBreak() {
         {sources.length > 0 && (
           <select
             value={sourceFilter}
-            onChange={(e) => setSourceFilter(e.target.value)}
+            onChange={(e) => handleSourceChange(e.target.value)}
             className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs outline-none"
           >
             <option value="">All sources</option>
@@ -204,9 +222,17 @@ export default function JoyBreak() {
           <p className="text-xs text-slate-400">{count} clip{count !== 1 ? "s" : ""}</p>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {items.map((item) => (
-              <JoyClipCard key={item._id} item={item} onPreview={setPreviewing} onDone={load} sources={sources} />
+              <JoyClipCard key={item._id} item={item} onPreview={setPreviewing} onDone={load} />
             ))}
           </div>
+
+          <Pagination
+            page={page}
+            pages={pages}
+            count={count}
+            pageSize={PAGE_SIZE}
+            onPageChange={setPage}
+          />
         </>
       )}
 

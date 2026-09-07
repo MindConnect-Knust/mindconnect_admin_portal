@@ -3,16 +3,17 @@ import {
   LayoutDashboard, ClipboardCheck, UserCog, GraduationCap, CalendarDays,
   Film, Laugh, ShieldCheck, Newspaper, BookOpen, CalendarCheck,
   Users, FileText, ListChecks, History, Settings, X, Database, TriangleAlert,
-  MonitorPlay, Layers, Bell, ClipboardList,
+  MonitorPlay, Layers, Bell, ClipboardList, Activity,
 } from "lucide-react";
 import { useData } from "../../context/DataContext";
 
 const SECTION = "px-3 mt-6 mb-1 text-[10px] font-semibold uppercase tracking-widest text-slate-400 select-none";
 
-const NavItem = ({ to, label, icon: Icon, badge, end }) => (
+const NavItem = ({ to, label, icon: Icon, badge, end, onClick }) => (
   <NavLink
     to={to}
     end={end}
+    onClick={onClick}
     className={({ isActive }) =>
       `flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
         isActive ? "bg-brand-50 text-brand-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
@@ -81,7 +82,7 @@ export default function Sidebar({ open, onClose }) {
 
           {/* OVERVIEW */}
           <p className={SECTION}>Overview</p>
-          <NavItem to="/" label="Dashboard" icon={LayoutDashboard} end />
+          <NavItem to="/" label="Dashboard" icon={LayoutDashboard} end onClick={onClose} />
 
           {/* CARE NETWORK */}
           <p className={SECTION}>Care Network</p>
@@ -133,8 +134,9 @@ export default function Sidebar({ open, onClose }) {
           <p className={SECTION}>Administration</p>
           <NavItem to="/administration/users" label="Users" icon={Users} onClick={onClose} />
           <NavItem to="/administration/audit-log" label="Audit Log" icon={History} onClick={onClose} />
+          <NavItem to="/administration/system-health" label="System Health" icon={Activity} onClick={onClose} />
           <NavItem to="/activity" label="Activity" icon={FileText} onClick={onClose} />
-          <NavItem to="/settings" label="Settings &amp; Health" icon={Settings} onClick={onClose} />
+          <NavItem to="/settings" label="Settings" icon={Settings} onClick={onClose} />
 
           {/* COMMUNICATIONS */}
           <p className={SECTION}>Communications</p>
