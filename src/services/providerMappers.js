@@ -103,14 +103,41 @@ export function mapProvider(row) {
   };
 }
 
-export function mapAuditEvent(event) {
+export function mapAuditEvent(event = {}) {
+  const rawEvent = event.event || event.action || "SYSTEM_EVENT";
+  const rawAt = event.at || event.timestamp || new Date().toISOString();
+  const actorName = event.actor?.name || event.admin || "System";
+  const actorRole = event.actor?.role || "system";
+
   return {
-    id: event.id,
-    timestamp: event.at,
-    admin: event.actor?.name || "System",
-    action: event.event.replaceAll("_", " ").toLowerCase(),
-    targetName: event.providerName,
-    targetRole: event.providerRole,
+    id: event.id || event.auditId || String(Math.random()),
+    auditId: event.auditId || event.id,
+    event: rawEvent,
+    action: typeof rawEvent === "string" ? rawEvent.replace(/_/g, " ").toLowerCase() : "event",
+    at: rawAt,
+    timestamp: rawAt,
+    actor: {
+      id: event.actor?.id || null,
+      name: actorName,
+      email: event.actor?.email || "",
+      role: actorRole,
+    },
+    admin: actorName,
+    providerId: event.providerId || event.targetId || "",
+    providerName: event.providerName || event.targetSummary || event.targetId || "—",
+    providerRole: event.providerRole || event.targetType || "—",
+    targetType: event.targetType || "PROVIDER",
+    targetId: event.targetId || event.providerId || "",
+    targetSummary: event.targetSummary || event.providerName || "",
+    fromStatus: event.fromStatus || null,
+    toStatus: event.toStatus || null,
     reason: event.reason || "",
+    status: event.status || "SUCCESS",
+    requestId: event.requestId || "",
+    ipHash: event.ipHash || "",
+    beforeStateSummary: event.beforeStateSummary || null,
+    afterStateSummary: event.afterStateSummary || null,
+    metadata: event.metadata || null,
+    errorCode: event.errorCode || "",
   };
 }

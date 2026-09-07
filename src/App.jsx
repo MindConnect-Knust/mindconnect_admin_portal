@@ -41,6 +41,8 @@ import AppointmentsPage from "./pages/administration/Appointments";
 import SystemHealth from "./pages/administration/SystemHealth";
 import PushNotifications from "./pages/communications/PushNotifications";
 
+import ErrorBoundary from "./components/common/ErrorBoundary";
+
 function AppRoutes() {
   return (
     <Routes>
@@ -49,7 +51,9 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <DataProvider>
-              <DashboardLayout />
+              <ErrorBoundary>
+                <DashboardLayout />
+              </ErrorBoundary>
             </DataProvider>
           </ProtectedRoute>
         }
@@ -71,7 +75,7 @@ function AppRoutes() {
         <Route path="/content/reels" element={<Reels />} />
         <Route path="/content/trusted-sources" element={<TrustedSources />} />
         <Route path="/content/source-candidates" element={<SourceCandidates />} />
-          <Route path="/content/assessments" element={<AssessmentTemplates />} />
+        <Route path="/content/assessments" element={<AssessmentTemplates />} />
 
         {/* CMS */}
         <Route path="/cms/news" element={<News />} />
@@ -98,11 +102,13 @@ function AppRoutes() {
 export default function App() {
   return (
     <BrowserRouter>
-      <ToastProvider>
-        <AuthProvider>
-          <AppRoutes />
-        </AuthProvider>
-      </ToastProvider>
+      <ErrorBoundary>
+        <ToastProvider>
+          <AuthProvider>
+            <AppRoutes />
+          </AuthProvider>
+        </ToastProvider>
+      </ErrorBoundary>
     </BrowserRouter>
   );
 }

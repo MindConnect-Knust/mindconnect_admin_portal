@@ -1,11 +1,12 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   UserCog, GraduationCap, ClipboardCheck, MessageCircle, CalendarCheck,
   PauseCircle, MonitorPlay, Laugh, Film, TriangleAlert, Activity,
-  ArrowRight, RefreshCcw,
+  ArrowRight, RefreshCcw, Users, Server,
 } from "lucide-react";
 import { useData } from "../context/DataContext";
+import { getProductionMetrics } from "../services/administrationApi";
 import StatCard from "../components/dashboard/StatCard";
 import PendingApprovalsWidget from "../components/dashboard/PendingApprovalsWidget";
 import RecentActivityFeed from "../components/dashboard/RecentActivityFeed";
@@ -44,6 +45,24 @@ function CountBadge({ value, error }) {
 
 export default function Dashboard() {
   const { applications, counsellors, peerCounsellors, auditLog, isLoading, contentCounts, contentCountsError, refresh, refreshContentCounts } = useData();
+  const [metrics, setMetrics] = useState(null);
+  const [metricsLoading, setMetricsLoading] = useState(true);
+
+  const loadMetrics = useCallback(async () => {
+    try {
+      setMetricsLoading(true);
+      const data = await getProductionMetrics();
+      setMetrics(data);
+    } catch {
+      // Graceful fallback if offline
+    } finally {
+      setMetricsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadMetrics();
+  }, [loadMetrics]);
 
   const stats = useMemo(() => ({
     activeCounsellors: counsellors.filter((u) => u.status === "active").length,
@@ -78,6 +97,41 @@ export default function Dashboard() {
           <RefreshCcw size={13} /> Refresh
         </button>
       </div>
+
+      {/* Campus Platform Operations */}
+      <section>
+        <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">Campus Platform Operations</h3>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCard
+            icon={Users}
+            label="Total Students"
+            value={metrics?.totalStudents ?? "—"}
+            hint="Registered student accounts"
+            tone="brand"
+          />
+          <StatCard
+            icon={Users}
+            label="Active Students"
+            value={metrics?.activeStudents ?? "—"}
+            hint="Active accounts in good standing"
+            tone="emerald"
+          />
+          <StatCard
+            icon={CalendarCheck}
+            label="Appointments Today"
+            value={metrics?.appointmentsToday ?? 0}
+            hint="Scheduled for today"
+            tone="sky"
+          />
+          <StatCard
+            icon={Server}
+            label="Worker Status"
+            value={metrics?.workerHealth || "HEALTHY"}
+            hint="Receipt worker & schedulers"
+            tone={metrics?.workerHealth === "DEGRADED" ? "amber" : "emerald"}
+          />
+        </div>
+      </section>
 
       {/* Provider stats */}
       <section>
