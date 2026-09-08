@@ -42,6 +42,7 @@ import SystemHealth from "./pages/administration/SystemHealth";
 import PushNotifications from "./pages/communications/PushNotifications";
 
 import ErrorBoundary from "./components/common/ErrorBoundary";
+import PwaStatus from "./components/common/PwaStatus";
 
 function AppRoutes() {
   return (
@@ -106,6 +107,7 @@ export default function App() {
         <ToastProvider>
           <AuthProvider>
             <AppRoutes />
+            <PwaStatus />
           </AuthProvider>
         </ToastProvider>
       </ErrorBoundary>
