@@ -1,33 +1,29 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Menu, Bell, LogOut, ChevronDown, Search } from "lucide-react";
+import { Menu, LogOut, ChevronDown, Search } from "lucide-react";
+import NotificationMenu from "./NotificationMenu";
 import { useAuth } from "../../context/AuthContext";
 import { useData } from "../../context/DataContext";
-import { timeAgo, initials } from "../../utils/formatters";
+import { initials } from "../../utils/formatters";
 
 export default function Topbar({ onMenuClick, pageTitle }) {
   const { admin, logout } = useAuth();
   const { notifications, counsellors, peerCounsellors } = useData();
   const navigate = useNavigate();
-  const [notifOpen, setNotifOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
-  const notifRef = useRef(null);
   const profileRef = useRef(null);
   const searchRef = useRef(null);
 
   useEffect(() => {
     const onClick = (e) => {
-      if (notifRef.current && !notifRef.current.contains(e.target)) setNotifOpen(false);
       if (profileRef.current && !profileRef.current.contains(e.target)) setProfileOpen(false);
       if (searchRef.current && !searchRef.current.contains(e.target)) setSearchOpen(false);
     };
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
   }, []);
-
-  const unreadCount = notifications.filter((n) => !n.read).length;
 
   const allUsers = [...counsellors, ...peerCounsellors];
   const results =
@@ -81,40 +77,7 @@ export default function Topbar({ onMenuClick, pageTitle }) {
           )}
         </div>
 
-        <div className="relative" ref={notifRef}>
-          <button
-            onClick={() => setNotifOpen((v) => !v)}
-            className="relative rounded-lg p-2 text-slate-500 hover:bg-slate-100"
-            aria-label="Open provider review queue"
-          >
-            <Bell size={19} />
-            {unreadCount > 0 && (
-              <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-white" />
-            )}
-          </button>
-          {notifOpen && (
-            <div className="absolute right-0 z-20 mt-1 w-80 overflow-hidden rounded-xl border border-slate-100 bg-white shadow-lg">
-              <div className="border-b border-slate-100 px-4 py-3">
-                <p className="text-sm font-semibold text-slate-800">Provider review queue</p>
-              </div>
-              <div className="max-h-80 overflow-y-auto">
-                {notifications.length === 0 ? (
-                  <p className="px-4 py-6 text-center text-sm text-slate-400">No applications await review.</p>
-                ) : (
-                  notifications.map((n) => (
-                    <div key={n.id} className="flex gap-2 border-b border-slate-50 px-4 py-3 last:border-0">
-                      <span className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${n.read ? "bg-slate-200" : "bg-brand-500"}`} />
-                      <div>
-                        <p className="text-sm text-slate-700 leading-snug">{n.message}</p>
-                        <p className="mt-0.5 text-xs text-slate-400">{timeAgo(n.timestamp)}</p>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          )}
-        </div>
+        <NotificationMenu providerQueue={notifications} showProviderQueue={admin?.rawRole === "admin"} />
 
         <div className="relative" ref={profileRef}>
           <button onClick={() => setProfileOpen((v) => !v)} className="flex items-center gap-2 rounded-lg py-1.5 pl-1.5 pr-2 hover:bg-slate-100">

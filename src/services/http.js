@@ -146,7 +146,46 @@ async function request(path, { method = 'GET', body } = {}, canRetry = true) {
   return data;
 }
 
+/**
+ * Authenticated download for non-JSON responses such as CSV exports.
+ *
+ * `request` always parses JSON, which is right for the API and wrong for a file.
+ * This returns a Blob and a filename; the caller decides how to save it. A 401
+ * gets one refresh attempt, like every other request.
+ */
+async function download(path, canRetry = true) {
+  if (API_CONFIGURATION_ERROR) {
+    const error = new Error(API_CONFIGURATION_ERROR);
+    error.code = 'API_CONFIGURATION_ERROR';
+    throw error;
+  }
+  const token = getSession()?.token;
+  const response = await fetchWithTimeout(`${API_BASE_URL}${path}`, {
+    method: 'GET',
+    headers: {
+      'X-MindConnect-Client': CLIENT_TYPE,
+      'X-MindConnect-Platform': 'web',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+  if (response.status === 401 && canRetry) {
+    const refreshed = await refreshAccessToken();
+    if (refreshed) return download(path, false);
+  }
+  if (!response.ok) {
+    const data = await response.json().catch(() => null);
+    const error = new Error(data?.error || `Download failed (${response.status})`);
+    error.status = response.status;
+    error.code = data?.code;
+    throw error;
+  }
+  const disposition = response.headers.get('Content-Disposition') || '';
+  const match = disposition.match(/filename="([^"]+)"/);
+  return { blob: await response.blob(), filename: match ? match[1] : 'mindconnect-export.csv' };
+}
+
 export const http = {
+  download,
   get: (path) => request(path, { method: 'GET' }),
   post: (path, body) => request(path, { method: 'POST', body }),
   put: (path, body) => request(path, { method: 'PUT', body }),

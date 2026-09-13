@@ -4,6 +4,15 @@ import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 
 const TITLES = [
+  { match: "/concerns/", title: "Student Concern" },
+  { match: "/concerns", title: "Student Concerns" },
+  { match: "/outcomes/instruments", title: "Outcome Instruments" },
+  { match: "/administration/staff-access", title: "Staff Referral Access" },
+  { match: "/cases/", title: "Case" },
+  { match: "/cases", title: "Case Workspace" },
+  { match: "/analytics", title: "Wellbeing Intelligence" },
+  { match: "/crisis/care-navigation", title: "Care Navigation" },
+  { match: "/crisis", title: "Crisis Command Centre" },
   { match: "/", title: "Dashboard", end: true },
   { match: "/approvals", title: "Approvals" },
   { match: "/content-moderation", title: "Content Moderation" },

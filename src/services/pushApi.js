@@ -5,6 +5,12 @@ export async function getPushHealth() {
   return data.data;
 }
 
+/** GET /notifications/admin/diagnostics: dispatcher, queue, latency, background jobs. Aggregates and codes only. */
+export async function getDeliveryDiagnostics() {
+  const data = await http.get('/notifications/admin/diagnostics');
+  return data.data;
+}
+
 export async function listPushCampaigns(limit = 50) {
   const data = await http.get(`/notifications/admin/campaigns?limit=${limit}`);
   return data.data || [];

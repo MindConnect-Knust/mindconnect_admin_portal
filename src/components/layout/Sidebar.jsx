@@ -3,9 +3,16 @@ import {
   LayoutDashboard, ClipboardCheck, UserCog, GraduationCap, CalendarDays,
   Film, Laugh, ShieldCheck, Newspaper, BookOpen, CalendarCheck,
   Users, FileText, ListChecks, History, Settings, X, Database, TriangleAlert,
-  MonitorPlay, Layers, Bell, ClipboardList, Activity,
+  MonitorPlay, Layers, Bell, ClipboardList, Activity, ShieldAlert, Compass, FolderOpen, BarChart3,
+  HeartHandshake, Gauge, IdCard,
 } from "lucide-react";
 import { useData } from "../../context/DataContext";
+import { useAuth } from "../../context/AuthContext";
+import { canCrisis } from "../../services/crisisApi";
+import { canCare } from "../../services/careNavigationApi";
+import { canCase } from "../../services/caseApi";
+import { canAnalytics } from "../../services/analyticsApi";
+import { canAdmin, canConcern, canOutcome } from "../../services/portalPermissions";
 
 const SECTION = "px-3 mt-6 mb-1 text-[10px] font-semibold uppercase tracking-widest text-slate-400 select-none";
 
@@ -34,6 +41,15 @@ const NavItem = ({ to, label, icon: Icon, badge, end, onClick }) => (
 
 export default function Sidebar({ open, onClose }) {
   const { applications, contentCounts } = useData();
+  const { admin } = useAuth();
+  const isAdministrator = admin?.rawRole === "admin";
+  const canViewCrisis = canCrisis(admin, "CRISIS_INCIDENT_VIEW");
+  const canViewCare = canCare(admin, "CARE_REFERRALS_VIEW") || canCare(admin, "CARE_SERVICES_MANAGE");
+  const canViewCases = canCase(admin, "CASE_VIEW_ASSIGNED");
+  const canViewAnalytics = canAnalytics(admin, "ANALYTICS_SERVICE_VIEW");
+  const canViewConcerns = canConcern(admin, "CONCERN_REFERRAL_REVIEW");
+  const canManageInstruments = canOutcome(admin, "OUTCOME_INSTRUMENT_MANAGE");
+  const canManageStaffAccess = canAdmin(admin, "STAFF_ACCESS_MANAGE") || canAdmin(admin, "INSTITUTIONAL_DIRECTORY_MANAGE");
 
   const pendingApplications = applications.filter(
     (a) => a.status === "pending" || a.status === "under_review"
@@ -65,7 +81,7 @@ export default function Sidebar({ open, onClose }) {
             />
             <div className="leading-tight">
               <p className="text-sm font-bold text-slate-900">MindConnect</p>
-              <p className="text-[10px] text-slate-400 uppercase tracking-wide">Admin Console</p>
+              <p className="text-[10px] text-slate-400 uppercase tracking-wide">{admin?.rawRole === "counsellor" ? "Responder Console" : "Admin Console"}</p>
             </div>
           </NavLink>
           <button
@@ -80,6 +96,35 @@ export default function Sidebar({ open, onClose }) {
         {/* Scrollable nav */}
         <div className="flex-1 overflow-y-auto py-2 px-2">
 
+          {(canViewCases || canViewConcerns || canManageInstruments) && (
+            <>
+              <p className={SECTION}>Counselling</p>
+              {canViewCases && <NavItem to="/cases" label="Case workspace" icon={FolderOpen} onClick={onClose} />}
+              {canViewConcerns && <NavItem to="/concerns" label="Student concerns" icon={HeartHandshake} onClick={onClose} />}
+              {canManageInstruments && <NavItem to="/outcomes/instruments" label="Outcome instruments" icon={Gauge} onClick={onClose} />}
+            </>
+          )}
+
+          {canViewAnalytics && (
+            <>
+              <p className={SECTION}>Insight</p>
+              <NavItem to="/analytics" label="Wellbeing intelligence" icon={BarChart3} onClick={onClose} />
+            </>
+          )}
+
+          {(canViewCrisis || canViewCare) && (
+            <>
+              <p className={SECTION}>Safety operations</p>
+              {canViewCrisis && (
+                <NavItem to="/crisis" label="Crisis command centre" icon={ShieldAlert} onClick={onClose} />
+              )}
+              {canViewCare && (
+                <NavItem to="/crisis/care-navigation" label="Care navigation" icon={Compass} onClick={onClose} />
+              )}
+            </>
+          )}
+
+          {isAdministrator && (<>
           {/* OVERVIEW */}
           <p className={SECTION}>Overview</p>
           <NavItem to="/" label="Dashboard" icon={LayoutDashboard} end onClick={onClose} />
@@ -135,12 +180,14 @@ export default function Sidebar({ open, onClose }) {
           <NavItem to="/administration/users" label="Users" icon={Users} onClick={onClose} />
           <NavItem to="/administration/audit-log" label="Audit Log" icon={History} onClick={onClose} />
           <NavItem to="/administration/system-health" label="System Health" icon={Activity} onClick={onClose} />
+          {canManageStaffAccess && <NavItem to="/administration/staff-access" label="Staff Referral Access" icon={IdCard} onClick={onClose} />}
           <NavItem to="/activity" label="Activity" icon={FileText} onClick={onClose} />
           <NavItem to="/settings" label="Settings" icon={Settings} onClick={onClose} />
 
           {/* COMMUNICATIONS */}
           <p className={SECTION}>Communications</p>
           <NavItem to="/communications/push" label="Push Notifications" icon={Bell} onClick={onClose} />
+          </>)}
         </div>
 
         {/* Footer */}

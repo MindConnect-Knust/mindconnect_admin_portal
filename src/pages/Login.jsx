@@ -67,7 +67,7 @@ export default function Login() {
           </div>
 
           <h2 className="text-2xl font-bold text-slate-900">Welcome back</h2>
-          <p className="mt-1.5 text-sm text-slate-500">Sign in to manage providers, content, and campus wellbeing.</p>
+          <p className="mt-1.5 text-sm text-slate-500">Sign in to authorized administration or crisis-response tools.</p>
 
           <form onSubmit={handleSubmit} className="mt-8 space-y-4">
             <div>
@@ -127,7 +127,7 @@ export default function Login() {
           </form>
 
           <p className="mt-6 text-center text-xs text-slate-400">
-            Sign in with an approved administrator account.
+            Access is limited to approved administrators, authorized professionals and verified KNUST staff invited to the student support referral area.
           </p>
         </div>
       </div>
