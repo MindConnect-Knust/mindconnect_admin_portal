@@ -4,6 +4,7 @@ import {
   COMPONENT_ROWS,
   LANE_LABELS,
   componentDetail,
+  databaseSummary,
   formatAge,
   formatMs,
   stateTone,
@@ -179,6 +180,19 @@ export default function DeliveryDiagnostics() {
               </tbody>
             </table>
           </div>
+
+          {(() => {
+            const summary = databaseSummary(data);
+            const tone = summary.problem ? TONES.down : TONES.ok;
+            const Icon = tone.icon;
+            return (
+              <p className={`flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium ${tone.className}`}>
+                <Icon size={14} aria-hidden="true" />
+                <span className="font-semibold">Database</span>
+                <span>{summary.text}</span>
+              </p>
+            );
+          })()}
 
           <p className="flex flex-wrap items-center gap-1.5 text-[11px] text-slate-400">
             <Clock size={12} aria-hidden="true" />

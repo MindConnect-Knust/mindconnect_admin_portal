@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { COMPONENT_ROWS, componentDetail, formatAge, formatMs, stateTone } from "../src/services/deliveryDiagnostics.js";
+import { COMPONENT_ROWS, componentDetail, databaseSummary, formatAge, formatMs, stateTone } from "../src/services/deliveryDiagnostics.js";
 
 const read = (relativePath) =>
   readFileSync(fileURLToPath(new URL(`../${relativePath}`, import.meta.url)), "utf8");
@@ -30,7 +30,7 @@ test("ages and durations are formatted for people", () => {
 
 test("every required operations component is listed", () => {
   const keys = COMPONENT_ROWS.map(([key]) => key);
-  for (const key of ["pushDispatcher", "socketIO", "expoProvider", "receiptWorker", "analyticsWorker", "crisisEscalationWorker"]) {
+  for (const key of ["api", "mongodb", "pushDispatcher", "socketIO", "expoProvider", "receiptWorker", "analyticsWorker", "crisisEscalationWorker", "smtp", "cors"]) {
     assert.ok(keys.includes(key), key);
   }
 });
@@ -38,6 +38,26 @@ test("every required operations component is listed", () => {
 test("a worker attached to a different database is called out", () => {
   const detail = componentDetail("pushDispatcher", { lastHeartbeatAt: new Date().toISOString(), heartbeatAgeSeconds: 5, sameDatabaseAsWeb: false });
   assert.match(detail, /DIFFERENT DATABASE FROM WEB/);
+});
+
+test("System Health says which database web and worker use, and flags a mismatch", () => {
+  const healthy = databaseSummary({
+    environment: "staging",
+    database: { environment: "staging", name: "mindconnect_staging", fingerprint: "abc123", contract: { allowed: true, reason: "DATABASE_MATCHES_ENVIRONMENT" } },
+    components: { pushDispatcher: { databaseName: "mindconnect_staging", databaseFingerprint: "abc123", sameDatabaseAsWeb: true } },
+  });
+  assert.equal(healthy.problem, false);
+  assert.match(healthy.text, /web database mindconnect_staging \(abc123\)/);
+  assert.match(healthy.text, /worker database mindconnect_staging \(abc123\)/);
+  const split = databaseSummary({
+    environment: "staging",
+    database: { environment: "staging", name: "mindconnect_staging", fingerprint: "abc123", contract: { allowed: true } },
+    components: { pushDispatcher: { databaseFingerprint: "zzz999", sameDatabaseAsWeb: false } },
+  });
+  assert.equal(split.problem, true);
+  assert.match(split.text, /WEB AND WORKER ON DIFFERENT DATABASES/);
+  assert.equal(stateTone("CONFIGURED"), "ok");
+  assert.match(componentDetail("smtp", { state: "NOT_CONFIGURED" }), /cannot be emailed/);
 });
 
 test("delivery diagnostics live in System Health, never in Wellbeing Intelligence", () => {
