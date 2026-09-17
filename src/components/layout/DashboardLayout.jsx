@@ -12,6 +12,7 @@ const TITLES = [
   { match: "/cases", title: "Case Workspace" },
   { match: "/analytics", title: "Wellbeing Intelligence" },
   { match: "/crisis/care-navigation", title: "Care Navigation" },
+  { match: "/institutional", title: "Institutional Content" },
   { match: "/crisis", title: "Crisis Command Centre" },
   { match: "/", title: "Dashboard", end: true },
   { match: "/approvals", title: "Approvals" },

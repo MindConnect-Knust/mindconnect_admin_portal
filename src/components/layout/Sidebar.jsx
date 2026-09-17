@@ -4,7 +4,7 @@ import {
   Film, Laugh, ShieldCheck, Newspaper, BookOpen, CalendarCheck,
   Users, FileText, ListChecks, History, Settings, X, Database, TriangleAlert,
   MonitorPlay, Layers, Bell, ClipboardList, Activity, ShieldAlert, Compass, FolderOpen, BarChart3,
-  HeartHandshake, Gauge, IdCard,
+  HeartHandshake, Gauge, IdCard, Landmark,
 } from "lucide-react";
 import { useData } from "../../context/DataContext";
 import { useAuth } from "../../context/AuthContext";
@@ -80,8 +80,8 @@ export default function Sidebar({ open, onClose }) {
               className="h-8 w-8 rounded-lg object-contain"
             />
             <div className="leading-tight">
-              <p className="text-sm font-bold text-slate-900">MindConnect</p>
-              <p className="text-[10px] text-slate-400 uppercase tracking-wide">{admin?.rawRole === "counsellor" ? "Responder Console" : "Admin Console"}</p>
+              <p className="text-sm font-bold text-slate-900">KNUST e-Counselling</p>
+              <p className="text-[10px] text-slate-400 uppercase tracking-wide">{admin?.rawRole === "counsellor" ? "Responder Console" : "Powered by MindConnect"}</p>
             </div>
           </NavLink>
           <button
@@ -138,6 +138,7 @@ export default function Sidebar({ open, onClose }) {
 
           {/* CONTENT */}
           <p className={SECTION}>Content</p>
+          <NavItem to="/institutional" label="Institutional Content" icon={Landmark} onClick={onClose} />
           <NavItem to="/content/library" label="Content Library" icon={Layers} onClick={onClose} />
           <NavItem
             to="/content/video-moderation"

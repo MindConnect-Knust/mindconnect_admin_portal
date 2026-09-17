@@ -24,6 +24,7 @@ import Reels from "./pages/content/Reels";
 import TrustedSources from "./pages/content/TrustedSources";
 import SourceCandidates from "./pages/content/SourceCandidates";
 import AssessmentTemplates from "./pages/content/AssessmentTemplates";
+import InstitutionalContent from "./pages/institutional/InstitutionalContent";
 
 // Pages — CMS
 import News from "./pages/cms/News";
@@ -180,6 +181,7 @@ function AppRoutes() {
         <Route path="/content/trusted-sources" element={<TrustedSources />} />
         <Route path="/content/source-candidates" element={<SourceCandidates />} />
         <Route path="/content/assessments" element={<AssessmentTemplates />} />
+        <Route path="/institutional" element={<InstitutionalContent />} />
 
         {/* CMS */}
         <Route path="/cms/news" element={<News />} />
