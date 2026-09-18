@@ -46,17 +46,15 @@ function CountBadge({ value, error }) {
 export default function Dashboard() {
   const { applications, counsellors, peerCounsellors, auditLog, isLoading, contentCounts, contentCountsError, refresh, refreshContentCounts } = useData();
   const [metrics, setMetrics] = useState(null);
-  const [metricsLoading, setMetricsLoading] = useState(true);
 
   const loadMetrics = useCallback(async () => {
     try {
-      setMetricsLoading(true);
       const data = await getProductionMetrics();
       setMetrics(data);
     } catch {
       // Graceful fallback if offline
     } finally {
-      setMetricsLoading(false);
+      // Keep the last known metrics when the production endpoint is unavailable.
     }
   }, []);
 

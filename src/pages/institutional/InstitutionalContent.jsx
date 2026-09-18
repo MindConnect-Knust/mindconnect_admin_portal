@@ -193,6 +193,75 @@ export default function InstitutionalContent() {
         ))}
       </div>
 
+      {summary.contentMix && (
+        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-xs">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm font-bold text-slate-900">Mobile Feed Content Mix & Governance</h2>
+                <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                  summary.contentMix.targetMet ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                }`}>
+                  <CheckCircle2 size={12} />
+                  {summary.contentMix.status === 'OPTIMAL' ? 'Policy Target Met (Optimal)' : summary.contentMix.status}
+                </span>
+              </div>
+              <p className="mt-0.5 text-xs text-slate-500">
+                Target ratio: 70–80% KNUST Institutional to 20–30% External Supplements. Default student feeds enforce KNUST-first dominance.
+              </p>
+            </div>
+            <div className="text-right">
+              <span className="text-2xl font-extrabold text-[#8C0000]">{summary.contentMix.institutionalPercentage}%</span>
+              <span className="text-xs font-medium text-slate-400"> / {summary.contentMix.externalPercentage}% External</span>
+            </div>
+          </div>
+
+          <div className="mt-4">
+            <div className="flex justify-between text-xs font-medium text-slate-600 mb-1.5">
+              <span className="flex items-center gap-1.5 text-[#8C0000] font-semibold">
+                <span className="h-2.5 w-2.5 rounded-full bg-[#8C0000]" />
+                KNUST Institutional & KCC ({summary.contentMix.institutionalCount} items · {summary.contentMix.institutionalPercentage}%)
+              </span>
+              <span className="flex items-center gap-1.5 text-sky-700 font-semibold">
+                <span className="h-2.5 w-2.5 rounded-full bg-sky-600" />
+                External Supplements ({summary.contentMix.externalCount} items · {summary.contentMix.externalPercentage}%)
+              </span>
+            </div>
+            <div className="h-3 w-full overflow-hidden rounded-full bg-slate-100 flex">
+              <div
+                className="bg-[#8C0000] transition-all duration-500"
+                style={{ width: `${summary.contentMix.institutionalPercentage}%` }}
+                title={`KNUST Institutional: ${summary.contentMix.institutionalPercentage}%`}
+              />
+              <div
+                className="bg-sky-600 transition-all duration-500"
+                style={{ width: `${summary.contentMix.externalPercentage}%` }}
+                title={`External Supplements: ${summary.contentMix.externalPercentage}%`}
+              />
+            </div>
+          </div>
+
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4 pt-3 border-t border-slate-100 text-xs">
+            <div className="rounded-lg bg-slate-50 p-2.5">
+              <p className="text-[11px] text-slate-500">Approved KNUST Pool</p>
+              <p className="text-base font-bold text-slate-900 mt-0.5">{summary.contentMix.institutionalCount} items</p>
+            </div>
+            <div className="rounded-lg bg-slate-50 p-2.5">
+              <p className="text-[11px] text-slate-500">Approved External Pool</p>
+              <p className="text-base font-bold text-slate-900 mt-0.5">{summary.contentMix.externalCount} items</p>
+            </div>
+            <div className="rounded-lg bg-slate-50 p-2.5">
+              <p className="text-[11px] text-slate-500">Target Distribution</p>
+              <p className="text-base font-bold text-emerald-700 mt-0.5">70–80% KNUST</p>
+            </div>
+            <div className="rounded-lg bg-slate-50 p-2.5">
+              <p className="text-[11px] text-slate-500">Pending Review</p>
+              <p className="text-base font-bold text-slate-900 mt-0.5">{summary.contentMix.unreviewedCount ?? 0} items</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex gap-1 overflow-x-auto border-b border-slate-200" role="tablist" aria-label="Institutional content views">
         {TABS.map(([key, name]) => (
           <button key={key} role="tab" aria-selected={active === key} onClick={() => setActive(key)}

@@ -203,7 +203,7 @@ export default function CrisisCommandCentre() {
                 </Panel>
 
                 <Panel title="Location" subtitle="Exact coordinates appear only with location permission or an active break-glass grant.">
-                  <IncidentMap location={detail.location} />
+                  <IncidentMap location={detail.location} locationHistory={detail.locationHistory} />
                 </Panel>
               </div>
 

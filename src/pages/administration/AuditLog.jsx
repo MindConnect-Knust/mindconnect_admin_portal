@@ -3,16 +3,10 @@ import {
   History,
   RefreshCcw,
   Search,
-  Filter,
   CheckCircle2,
   XCircle,
   X,
   ChevronRight,
-  Shield,
-  Clock,
-  User,
-  SlidersHorizontal,
-  ExternalLink,
 } from "lucide-react";
 import { getAuditLogs } from "../../services/administrationApi";
 import EmptyState from "../../components/common/EmptyState";
