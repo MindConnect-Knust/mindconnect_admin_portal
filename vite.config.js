@@ -9,13 +9,11 @@ export default defineConfig({
     VitePWA({
       registerType: 'prompt',
       includeAssets: [
-        'favicon.svg',
-        'mindconnect-logo.png',
-        'mindconnect-icon-180.png',
-        'mindconnect-icon-192.png',
-        'mindconnect-icon-512.png',
-        'mindconnect-icon-maskable-192.png',
-        'mindconnect-icon-maskable-512.png',
+        'knust-ecounselling-icon-180.png',
+        'knust-ecounselling-icon-192.png',
+        'knust-ecounselling-icon-512.png',
+        'knust-ecounselling-icon-maskable-192.png',
+        'knust-ecounselling-icon-maskable-512.png',
       ],
       manifest: {
         name: 'MindConnect Admin',
@@ -25,13 +23,13 @@ export default defineConfig({
         scope: '/',
         display: 'standalone',
         display_override: ['window-controls-overlay', 'standalone'],
-        theme_color: '#4f46e5',
+        theme_color: '#790314',
         background_color: '#f8fafc',
         icons: [
-          { src: '/mindconnect-icon-192.png', sizes: '192x192', type: 'image/png' },
-          { src: '/mindconnect-icon-512.png', sizes: '512x512', type: 'image/png' },
-          { src: '/mindconnect-icon-maskable-192.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },
-          { src: '/mindconnect-icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+          { src: '/knust-ecounselling-icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: '/knust-ecounselling-icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: '/knust-ecounselling-icon-maskable-192.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },
+          { src: '/knust-ecounselling-icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
       workbox: {
