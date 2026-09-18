@@ -1,6 +1,10 @@
 const APP_ENV = String(import.meta.env.VITE_APP_ENV || (import.meta.env.PROD ? 'production' : 'development')).trim().toLowerCase();
+const PRODUCTION_API_HOST = 'mind-connect-backend-wg2b.onrender.com';
+// Development talks to the backend on this machine (and its mindconnect_dev
+// database). It never falls back to, or may be pointed at, the production API.
+const DEFAULT_API_URL = APP_ENV === 'development' ? 'http://localhost:5000/api' : `https://${PRODUCTION_API_HOST}/api`;
 const RAW_API_URL = String(
-  import.meta.env.VITE_API_URL || 'https://mind-connect-backend-wg2b.onrender.com/api'
+  import.meta.env.VITE_API_URL || DEFAULT_API_URL
 ).trim().replace(/\/+$/, '');
 const SESSION_KEY = 'admin_portal_session';
 const REQUEST_TIMEOUT_MS = 60000;
@@ -25,6 +29,9 @@ const resolveApiBaseUrl = () => {
   if (!/\/api\/?$/.test(parsed.pathname)) return { url: '', error: 'The admin portal API URL must end with /api.' };
   if (parsed.username || parsed.password || parsed.search || parsed.hash) {
     return { url: '', error: 'The admin portal API URL cannot contain credentials, a query string, or a fragment.' };
+  }
+  if (APP_ENV === 'development' && parsed.hostname.toLowerCase() === PRODUCTION_API_HOST) {
+    return { url: '', error: 'Local development cannot use the production API. Set VITE_API_URL=http://localhost:5000/api and run the backend locally.' };
   }
   if (APP_ENV !== 'development') {
     const host = parsed.hostname.toLowerCase();
@@ -146,7 +153,46 @@ async function request(path, { method = 'GET', body } = {}, canRetry = true) {
   return data;
 }
 
+/**
+ * Authenticated download for non-JSON responses such as CSV exports.
+ *
+ * `request` always parses JSON, which is right for the API and wrong for a file.
+ * This returns a Blob and a filename; the caller decides how to save it. A 401
+ * gets one refresh attempt, like every other request.
+ */
+async function download(path, canRetry = true) {
+  if (API_CONFIGURATION_ERROR) {
+    const error = new Error(API_CONFIGURATION_ERROR);
+    error.code = 'API_CONFIGURATION_ERROR';
+    throw error;
+  }
+  const token = getSession()?.token;
+  const response = await fetchWithTimeout(`${API_BASE_URL}${path}`, {
+    method: 'GET',
+    headers: {
+      'X-MindConnect-Client': CLIENT_TYPE,
+      'X-MindConnect-Platform': 'web',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+  if (response.status === 401 && canRetry) {
+    const refreshed = await refreshAccessToken();
+    if (refreshed) return download(path, false);
+  }
+  if (!response.ok) {
+    const data = await response.json().catch(() => null);
+    const error = new Error(data?.error || `Download failed (${response.status})`);
+    error.status = response.status;
+    error.code = data?.code;
+    throw error;
+  }
+  const disposition = response.headers.get('Content-Disposition') || '';
+  const match = disposition.match(/filename="([^"]+)"/);
+  return { blob: await response.blob(), filename: match ? match[1] : 'mindconnect-export.csv' };
+}
+
 export const http = {
+  download,
   get: (path) => request(path, { method: 'GET' }),
   post: (path, body) => request(path, { method: 'POST', body }),
   put: (path, body) => request(path, { method: 'PUT', body }),

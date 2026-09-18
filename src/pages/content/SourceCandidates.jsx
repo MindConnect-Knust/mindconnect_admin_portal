@@ -11,12 +11,6 @@ const STATUS_TABS = [
   { value: "promoted_to_trusted_source", label: "Promoted" },
 ];
 
-const CREDIBILITY_CLASSES = [
-  "AUTHORITATIVE_ORGANIZATION","UNIVERSITY","PROFESSIONAL_ORGANIZATION",
-  "LICENSED_PROFESSIONAL","EDUCATIONAL_ORGANIZATION","WELLNESS_CREATOR",
-  "UNKNOWN","HIGH_RISK_SOURCE",
-];
-
 const riskChip = (level) => ({
   low: "bg-emerald-100 text-emerald-700",
   medium: "bg-amber-100 text-amber-700",

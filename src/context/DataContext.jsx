@@ -1,3 +1,4 @@
+/* oxlint-disable react/only-export-components */
 import { createContext, useContext, useState, useCallback, useEffect, useMemo } from "react";
 import * as api from "../services/api";
 import { getDashboardContentCounts } from "../services/contentApi";

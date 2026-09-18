@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { getSystemHealth } from "../../services/contentApi";
 import { HEALTH_STATES } from "../../services/systemHealth";
+import DeliveryDiagnostics from "../../components/system/DeliveryDiagnostics";
 
 function StatusBadge({ status }) {
   switch (status) {
@@ -395,6 +396,9 @@ export default function SystemHealth() {
           </div>
         </div>
       )}
+
+      {/* Real-time delivery: dispatcher, queue age, latency, background jobs */}
+      <DeliveryDiagnostics />
 
       {/* Security & Governance Footer */}
       <div className="rounded-xl border border-slate-100 bg-slate-50 p-4 text-[11px] text-slate-500 leading-relaxed">

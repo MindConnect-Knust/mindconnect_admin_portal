@@ -4,14 +4,34 @@ import { apiStatus, mapAuditEvent, mapProvider } from "./providerMappers";
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 
 export async function login(email, password) {
-  const data = await http.post("/auth/login", { email, password, role: "admin" });
-  if (!data.accessToken || data.user?.role !== "admin") {
-    throw new Error("An administrator account is required.");
+  const data = await http.post("/auth/login", { email, password });
+  const permissions = Array.isArray(data.user?.crisisPermissions) ? data.user.crisisPermissions : [];
+  const casePermissions = Array.isArray(data.user?.casePermissions) ? data.user.casePermissions : [];
+  const adminPermissions = Array.isArray(data.user?.adminPermissions) ? data.user.adminPermissions : [];
+  const isAdministrator = data.user?.role === "admin";
+  const isVerifiedCounsellor = data.user?.role === "counsellor" && data.user?.providerActive === true;
+  // A verified counsellor may use the portal for crisis response, casework, or
+  // both. The server still authorises every request on its own.
+  const isAuthorizedCounsellor =
+    isVerifiedCounsellor &&
+    (permissions.includes("CRISIS_INCIDENT_VIEW") || casePermissions.includes("CASE_VIEW_ASSIGNED") || casePermissions.includes("CONCERN_REFERRAL_REVIEW"));
+  // Verified faculty and staff reporters use the separate staff referral area.
+  const isVerifiedStaff = data.user?.role === "staff" && data.user?.staffVerified === true;
+  if (!data.accessToken || (!isAdministrator && !isAuthorizedCounsellor && !isVerifiedStaff)) {
+    throw new Error("An authorized administrator, counsellor, crisis responder or verified staff account is required.");
   }
   return {
+    id: data.user.id,
     name: data.user.name || email.split("@")[0],
     email: data.user.email || email,
-    role: "Program Administrator",
+    role: isVerifiedStaff ? "Staff Reporter" : isAdministrator ? "Program Administrator" : casePermissions.length ? "Counsellor" : "Crisis Responder",
+    rawRole: data.user.role,
+    crisisPermissions: permissions,
+    casePermissions,
+    adminPermissions,
+    staffPermissions: isVerifiedStaff && Array.isArray(data.user?.staffPermissions) ? data.user.staffPermissions : [],
+    staffRole: isVerifiedStaff ? data.user?.staffRole || null : null,
+    staffVerified: isVerifiedStaff,
     token: data.accessToken,
     refreshToken: data.refreshToken,
   };

@@ -125,6 +125,7 @@ export function mapAuditEvent(event = {}) {
     admin: actorName,
     providerId: event.providerId || event.targetId || "",
     providerName: event.providerName || event.targetSummary || event.targetId || "—",
+    targetName: event.providerName || event.targetSummary || event.targetId || "—",
     providerRole: event.providerRole || event.targetType || "—",
     targetType: event.targetType || "PROVIDER",
     targetId: event.targetId || event.providerId || "",
