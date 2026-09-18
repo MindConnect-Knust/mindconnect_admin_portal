@@ -32,19 +32,32 @@ export async function getInstitutionalSupportServices() {
 }
 
 export async function getInstitutionalWorkspace() {
-  const [summary, sourceResult, sourceHealth, review, published, events, programmes, calendars, counsellors, services] =
-    await Promise.all([
-      getInstitutionalSummary(),
-      listTrustedSources(),
-      getInstitutionalSourceHealth(),
-      listContent({ status: 'review', limit: 100 }),
-      listContent({ status: 'published', limit: 100 }),
-      listContent({ type: 'EVENT', limit: 100 }),
-      getInstitutionalProgrammes(),
-      getAcademicCalendars(),
-      getInstitutionalCounsellors(),
-      getInstitutionalSupportServices(),
-    ]);
+  const results = await Promise.allSettled([
+    getInstitutionalSummary(),
+    listTrustedSources(),
+    getInstitutionalSourceHealth(),
+    listContent({ status: 'review', limit: 100 }),
+    listContent({ status: 'published', limit: 100 }),
+    listContent({ type: 'EVENT', limit: 100 }),
+    getInstitutionalProgrammes(),
+    getAcademicCalendars(),
+    getInstitutionalCounsellors(),
+    getInstitutionalSupportServices(),
+  ]);
+
+  const val = (idx, fallback) => (results[idx].status === 'fulfilled' ? results[idx].value : fallback);
+
+  const summary = val(0, {});
+  const sourceResult = val(1, { sources: [] });
+  const sourceHealth = val(2, []);
+  const review = val(3, { items: [] });
+  const published = val(4, { items: [] });
+  const events = val(5, { items: [] });
+  const programmes = val(6, []);
+  const calendars = val(7, []);
+  const counsellors = val(8, []);
+  const services = val(9, []);
+
   return {
     summary,
     sources: (sourceResult.sources || []).filter((source) =>
