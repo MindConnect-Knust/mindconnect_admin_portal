@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ClipboardCheck } from "lucide-react";
 import { useData } from "../context/DataContext";
 import Tabs from "../components/common/Tabs";
@@ -8,7 +8,7 @@ import ApplicationCard from "../components/approvals/ApplicationCard";
 import ApplicationDetailModal from "../components/approvals/ApplicationDetailModal";
 
 export default function Approvals() {
-  const { applications, approveApplication, rejectApplication } = useData();
+  const { applications, approveApplication, rejectApplication, refresh } = useData();
   const [tab, setTab] = useState("counsellor");
   const [viewing, setViewing] = useState(null);
   const [approveTarget, setApproveTarget] = useState(null);
@@ -17,6 +17,10 @@ export default function Approvals() {
   const counsellorApps = useMemo(() => applications.filter((a) => a.role === "counsellor"), [applications]);
   const peerApps = useMemo(() => applications.filter((a) => a.role === "peer_listener"), [applications]);
   const list = tab === "counsellor" ? counsellorApps : peerApps;
+
+  useEffect(() => {
+    void refresh({ background: true });
+  }, [refresh]);
 
   const handleApprove = async () => {
     await approveApplication(approveTarget.id);

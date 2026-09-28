@@ -27,31 +27,32 @@ export function DataProvider({ children }) {
   });
   const [contentCountsError, setContentCountsError] = useState(false);
 
-  const loadAll = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const [apps, cs, pcs, audit] = await Promise.all([
-        api.getApplications(),
-        api.getCounsellors(),
-        api.getPeerCounsellors(),
-        api.getAuditLog(),
-      ]);
-      setApplications(apps);
-      setCounsellors(cs);
-      setPeerCounsellors(pcs);
-      setAuditLog(audit);
-      setNotifications(apps.slice(0, 20).map((application) => ({
+  // Settled independently: a failing audit log must not leave the approval
+  // queue empty. Background refreshes stay silent and keep the page on screen.
+  const loadAll = useCallback(async ({ background = false } = {}) => {
+    if (!background) setIsLoading(true);
+    const [apps, cs, pcs, audit] = await Promise.allSettled([
+      api.getApplications(),
+      api.getCounsellors(),
+      api.getPeerCounsellors(),
+      api.getAuditLog(),
+    ]);
+    if (apps.status === "fulfilled") {
+      setApplications(apps.value);
+      setNotifications(apps.value.slice(0, 20).map((application) => ({
         id: `application-${application.id}-${application.version}`,
         type: "application",
         message: `${application.name} has an application awaiting review.`,
         timestamp: application.submittedAt,
         read: false,
       })));
-    } catch (error) {
-      notify(error.message || "Failed to load portal data.", "error");
-    } finally {
-      setIsLoading(false);
     }
+    if (cs.status === "fulfilled") setCounsellors(cs.value);
+    if (pcs.status === "fulfilled") setPeerCounsellors(pcs.value);
+    if (audit.status === "fulfilled") setAuditLog(audit.value);
+    const failure = [apps, cs, pcs, audit].find((result) => result.status === "rejected");
+    if (failure && !background) notify(failure.reason?.message || "Failed to load portal data.", "error");
+    setIsLoading(false);
   }, [notify]);
 
   const loadContentCounts = useCallback(async () => {
@@ -70,6 +71,23 @@ export function DataProvider({ children }) {
       void loadContentCounts();
     }
   }, [isAuthenticated, loadAll, loadContentCounts]);
+
+  // Applications arrive while the portal is open. Without this, anything
+  // submitted after sign-in stayed invisible until the admin signed in again.
+  useEffect(() => {
+    if (!isAuthenticated) return undefined;
+    const refresh = () => {
+      if (document.visibilityState === "visible") void loadAll({ background: true });
+    };
+    const timer = setInterval(refresh, 30000);
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", refresh);
+    };
+  }, [isAuthenticated, loadAll]);
 
   const adminName = admin?.name || "Admin";
 
